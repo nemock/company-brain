@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# uv
+uv.lock
+
+# Obsidian (workspace state is per-machine)
+.obsidian/workspace*.json
+
+# Vault attachments (heavy binaries per PRD §6)
+_attachments/
+
+# Generated document exports
+exports/
+
+# Generated viewer outputs
+vault-graph.html
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
