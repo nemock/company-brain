@@ -27,6 +27,13 @@ _attachments/
 # Generated document exports
 exports/
 
+# Override: example vaults DO commit their _attachments and exports so the
+# example can demonstrate the full schema, including web-snapshot fixtures.
+!examples/*/_attachments/
+!examples/*/_attachments/**
+!examples/*/exports/
+!examples/*/exports/**
+
 # Generated viewer outputs
 vault-graph.html
 
