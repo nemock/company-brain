@@ -17,7 +17,7 @@ clearance_date: 2026-12-31
 applicant: "Vitalisens (fictional)"
 device_name: "Vitalisens Cardio"
 product_codes: [DRT]
-summary_url: null
+summary_url: "https://example.com/fda/cdrh/K243189-summary.pdf"
 edges:
   - target: regulatory-clearance-K231234-cardiotrace-pro-v2
     type: preceded_by
