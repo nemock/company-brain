@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Text Processing :: Markup :: Markdown",
 ]
 dependencies = [
-    # Populated as the CLI grows. v0.1.0 has no runtime deps beyond stdlib.
+    "typer>=0.12",
 ]
 
 [project.optional-dependencies]
