@@ -39,6 +39,7 @@ Dates can be layered on later once the project owner has a sense of velocity. Or
 - `intake` skill with `competitor`, `competitor-ifu`, `competitor-clearance`, `competitor-snapshot` (manual screenshot import path).
 - `atomize` skill — markdown, Word, PDF.
 - `atomize` skill — transcripts and image screenshots (Claude vision for text extraction from images).
+- **Schema bump**: extend `requirement_class` to accept `software` and `hardware` alongside `market` / `user` / `system`. Enables SRS and HRS generators downstream. (Small change; existing nodes stay valid. _Already implemented on main as part of the doc-scope expansion work; this milestone formalizes it._)
 
 **Unlocks:** users can start populating real vaults. The pilot company can begin ingesting existing project initiation documents and the messy product launch outline.
 
@@ -46,39 +47,45 @@ Dates can be layered on later once the project owner has a sense of velocity. Or
 
 ---
 
-## v0.3.0 — Query and MRD
+## v0.3.0 — Query, MRD, and one-pager
 
-**Why next:** completes the round trip from intake to artifact. This is the milestone where company-brain proves its core value.
+**Why next:** completes the round trip from intake to artifact. This is the milestone where company-brain proves its core value, and where the doc-generation framework is exercised by two finished docs of different size.
 
 **Included:**
 - `query` skill — IB retrieval analyst, profile-aware, walks edges, cites node ids.
-- `doc-generate` skill with the full MRD pipeline:
+- `doc-generate` skill with the full **MRD** pipeline:
   - Profile-aware section inclusion (medical-device-only sections omitted entirely for other profiles).
   - Evidence-vs-vision split.
   - Anti-decisions / non-goal section.
   - IFU comparison table (medical-device profile).
   - Source bibliography with `source_kind` labels.
-- MRD output to markdown, docx, html.
+- `doc-generate` skill with the full **one-pager** pipeline — a much shorter document that proves the framework is general, not MRD-specific.
+- Branding integration: doc-generate reads `_branding/colors.yaml`, optional `logo.png`, optional `templates/` overrides.
+- Output to markdown, docx, html.
 
-**Unlocks:** the public-facing value proposition becomes real. From here, every demo can include "and now generate the MRD."
+**Unlocks:** the public-facing value proposition becomes real. From here, every demo can include "and now generate the MRD and the one-pager."
 
-**Done when:** the meddev-fictional vault produces an MRD that labels every claim by source-kind, includes the IFU comparison and anti-decision sections, and re-runs idempotently.
+**Done when:** the meddev-fictional vault produces an MRD that labels every claim by source-kind, includes the IFU comparison and anti-decision sections, and re-runs idempotently. The vault also produces a 1-page summary suitable as a sales leave-behind.
 
 ---
 
-## v0.4.0 — Visualize and maintain
+## v0.4.0 — Visualize, maintain, and the 19 doc scaffolds
 
-**Why next:** long-term vault health and the signal that doc-generate is a category, not just MRD.
+**Why next:** long-term vault health, and the signal that doc-generate is a broad category — 19 scaffolded generators across project management, engineering requirements, strategy, sales, and external comms.
 
 **Included:**
 - `visualize` skill + `cb viewer` — D3 HTML, IFU chain view, predicate tree view, community detection.
 - `maintain` skill — confidence decay (fact nodes linked to medium/high volatility metrics), audit, broken-edge repair, missing-inverse-edge auto-fix, INDEX.md drift repair.
 - `cb validate --fix` implemented.
-- `doc-generate` scaffolds for PID, business plan, competitive brief, risk brainstorm (runnable stubs that produce flagged skeleton output).
+- `doc-generate` scaffolds for all **19** remaining doc types (see PRD §11 for the full table):
+  - **Project management (PMBOK-aligned, abbreviated):** PID, project charter, stakeholder register, risk register (medical-device), status report, meeting minutes (1 page, not 12), lessons learned.
+  - **Engineering requirements:** SRD, SRS, HRS.
+  - **Strategy / sales / external:** business plan, sales battle card (one file per competitor), competitive brief, IFU comparison report (medical-device), decision log, press release, investor update, onboarding doc.
+  - **Risk (medical-device):** risk brainstorm.
 
-**Unlocks:** users have a long-term answer to "is my vault healthy?" and a visible promise of where the doc-generation roadmap is heading.
+**Unlocks:** users have a long-term answer to "is my vault healthy?" and every adopter can see scaffolds for the documents they're likely to want — even if the full implementations aren't done.
 
-**Done when:** `cb validate --fix` repairs synthetic damage to the example vault, and each scaffold generator produces something for the meddev-fictional vault that adopters can fill in.
+**Done when:** `cb validate --fix` repairs synthetic damage to the example vault, and each of the 19 scaffold generators produces a skeleton output (flagged as `scaffold`) for the meddev-fictional vault that adopters can fill in.
 
 ---
 
@@ -123,10 +130,9 @@ Order within v1.x is flexible; prioritized by user feedback after v1.0.0.
 - PowerPoint atomization (`python-pptx`).
 
 **Doc generators (full implementations to replace scaffolds):**
-- PID generator.
-- Competitive brief generator.
-- Business plan generator.
-- Risk brainstorm generator (medical-device).
+- All 19 scaffolded generators get full implementations in v1.x, prioritized by user feedback after v1.0.0.
+- Likely priority order based on the data the meddev-fictional vault already exercises: **IFU comparison report**, **sales battle card**, **decision log**, **SRD**, **PID**, **status report** — these have the richest data on tap. Lower-priority based on data needs: **investor update** (needs metric snapshots that adopters may not have yet), **lessons learned** (needs project-close patterns), **business plan** (needs much broader vault content).
+- Final priority order determined by adopter demand after v1.0.0.
 
 **Integration:**
 - Wrapper around the existing `competitor-profiling` skill that writes directly into the vault rather than emitting a standalone markdown file.
