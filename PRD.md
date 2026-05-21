@@ -42,8 +42,8 @@ Public GitHub under github.com/nemock for the skills + CLI + examples. MIT-licen
 A full pipeline:
 
 - Seven Claude Code skills: `vault-architect`, `intake`, `atomize`, `query`, `doc-generate`, `maintain`, `visualize`.
-- One finished document generator: **MRD**.
-- Scaffolded (stubbed-but-runnable) generators for project initiation, business plan, competitive brief, risk brainstorm.
+- Two finished document generators: **MRD** and **one-pager** (v0.3.0).
+- Scaffolded (stubbed-but-runnable) generators for 19 additional document types (v0.4.0): PID, project charter, stakeholder register, risk register, status report, meeting minutes, lessons learned, business plan, sales battle card, competitive brief, IFU comparison report (medical-device), decision log, press release, investor update, onboarding doc, SRD, SRS, HRS, risk brainstorm (medical-device).
 - Python CLI (`cb`) shipped via `uv tool install` / `uvx`.
 - Schema with epistemic nodes + company entity nodes + opt-in medical-device profile (indications for use, regulatory clearances, hazards, etc.).
 - **Vault as git repository.** `cb scaffold` runs `git init` by default, writes a vault-level `.gitignore`, and makes an initial commit. Multi-user collaboration via standard git workflows.
@@ -57,7 +57,7 @@ A full pipeline:
 ## 5. Out of scope
 
 ### Deferred to v1.x
-- Full PID, business plan, competitive brief, and risk-brainstorm generators (v1 ships scaffolds only).
+- Full implementations of the 19 scaffolded generators (PID, project charter, stakeholder register, risk register, status report, meeting minutes, lessons learned, business plan, sales battle card, competitive brief, IFU comparison report, decision log, press release, investor update, onboarding doc, SRD, SRS, HRS, risk brainstorm). v1 ships scaffolds only for these.
 - PowerPoint atomization (Word and PDF are v1).
 - SaaS / hardware / services profile *content* (v1 reserves slots; profile mechanism is exercised by `medical-device`).
 - chrome-devtools-mcp-assisted automated web-snapshot capture (manual screenshot import is v1).
@@ -262,7 +262,7 @@ Required fields per Infinite Brain schema: `id`, `title`, `type`, `namespace`, `
 | `profile` | `_system/PROFILE.md` only | Active industry profile. |
 | `source_kind` | `source` nodes | Distinguishes origin (see §9). Drives MRD claim-flagging. |
 | `producing_skill` | `source` nodes when `source_kind: skill-output` | Names the upstream skill. |
-| `requirement_class` | `requirement` nodes | `market` \| `user` \| `system`. Required. |
+| `requirement_class` | `requirement` nodes | `market` \| `user` \| `system` \| `software` \| `hardware`. Required. Drives which requirements-doc generator picks the node up (MRD pulls `market`, SRD pulls `system`, SRS pulls `software`, HRS pulls `hardware`). |
 | `metric_id` | time-series fact nodes | Foreign key into the `metric` node this snapshot belongs to. |
 | `volatility_class` | `metric` nodes | `low` / `medium` / `high`. Drives confidence decay half-life. |
 | `legal_name`, `canonical_url` | `competitor` nodes | Disambiguation. All subsequent fetches scope to `canonical_url`'s domain. |
@@ -380,19 +380,43 @@ When the user runs an existing Claude Code skill (`competitor-profiling`, `custo
 
 ## 11. Document generation
 
-### v1 finished: MRD
+The v1 doc library is **21 generators** organized into three groups: strategy / marketing / external, project management (PMBOK-aligned), and engineering requirements. Each generator has its own length norm — there is no project-wide abbreviation principle. Some docs are inherently short (one-pager: 1 page); others are inherently medium-length (MRD: 5–10 pages); a few are intentionally abbreviated against the standard PMBOK form (meeting minutes: 1 page, not 12).
 
-The MRD generator pulls from:
+### Length-norm overview
 
-- `pillar` (positioning, principles) — frames the doc; includes non-goal pillars.
-- `persona`, `customer`, `competitor` — audience and landscape.
-- `indication-for-use` — when present, including a competitor IFU comparison table.
-- `requirement` with `requirement_class: market` — the actual market requirements.
-- `metric` and recent `fact` snapshots — traction or absence-of-traction.
-- `source` (all kinds) — claim labeling.
-- `_branding/` — logos, colors, optional template overrides.
+| Doc type | Length norm | Profile | v0.3 finished | v0.4 scaffold | v1.x full impl |
+|---|---|---|:-:|:-:|:-:|
+| MRD | 5–10 pages | all | ✅ | | |
+| One-pager | 1 page | all | ✅ | | |
+| PID (Project Initiation Document) | 2–4 pages | all | | ✅ | ✅ |
+| Project charter | 1 page | all | | ✅ | ✅ |
+| Stakeholder register | 1–2 pages (table) | all | | ✅ | ✅ |
+| Risk register (planning) | 1–3 pages (table) | medical-device | | ✅ | ✅ |
+| Status report | 1 page | all | | ✅ | ✅ |
+| Meeting minutes | 1 page (not 12) | all | | ✅ | ✅ |
+| Lessons learned / close-out | 1–2 pages | all | | ✅ | ✅ |
+| Business plan | 8–15 pages | all | | ✅ | ✅ |
+| Sales battle card | 1–2 pages per competitor | all | | ✅ | ✅ |
+| Competitive brief | 3–5 pages | all | | ✅ | ✅ |
+| IFU comparison report | 2–4 pages | medical-device | | ✅ | ✅ |
+| Decision log / ADR roll-up | 1–10 pages (scales with decision count) | all | | ✅ | ✅ |
+| Press release / launch announcement | 1 page | all | | ✅ | ✅ |
+| Investor update | 1–2 pages | all | | ✅ | ✅ |
+| Onboarding doc | 3–6 pages | all | | ✅ | ✅ |
+| SRD (System Requirements Document) | 5–15 pages | all | | ✅ | ✅ |
+| SRS (Software Requirements Specification) | 5–20 pages | all | | ✅ | ✅ |
+| HRS (Hardware Requirements Specification) | 5–20 pages | all | | ✅ | ✅ |
+| Risk brainstorm | 2–4 pages | medical-device | | ✅ | ✅ |
 
-Output structure (jinja2 template, profile-aware):
+All outputs land in `exports/`, which is committed by default so team members without skills can still read them. Output formats vary: markdown (always), docx / html for the long-form docs, occasionally xlsx for register-style docs.
+
+### v1 finished generators (v0.3.0)
+
+#### MRD (Marketing Requirements Document)
+
+Pulls from `pillar` (positioning, principles, non-goal pillars), `persona`, `customer`, `competitor`, `indication-for-use` (when present), `requirement` with `requirement_class: market`, `metric` and recent `fact` snapshots, `source` (all kinds), `_branding/`.
+
+Output structure (Jinja2 template, profile-aware):
 
 | # | Section | Profile |
 |---|---|---|
@@ -408,28 +432,92 @@ Output structure (jinja2 template, profile-aware):
 | 10 | What we are explicitly not doing (cites anti-decisions and non-goal pillars) | all |
 | 11 | Sources (full source-node bibliography with `source_kind` labels) | all |
 
-Profile-conditional sections are omitted entirely when the active profile doesn't enable them. A `default` or `saas` profile MRD has no Indications for Use or Regulatory Landscape sections at all, and its Competitive Landscape section excludes the clearance/IFU sub-paragraphs.
+Profile-conditional sections are omitted entirely when the active profile doesn't enable them. A `default` or `saas` profile MRD has no Indications for Use or Regulatory Landscape sections at all.
 
-Output formats: markdown (primary), docx, html. Outputs land in `exports/`, which is committed by default so team members without skills can still read them.
+#### One-pager
 
-### v1 scaffolded (stubs that run but produce skeleton output)
+A 1-page summary suitable as a sales leave-behind, partnership intro, or new-hire orientation handout. Pulls from a tight set: the top 1–2 pillars, the primary product, the primary persona, one short customer quote (if a `customer-interview` source exists), and the top-level value framing.
 
-- Project initiation document
-- Business plan
-- Competitive brief
-- Risk brainstorm (medical-device profile only)
+Section structure (markdown, single page):
+1. Product name + one-line positioning (from primary pillar).
+2. Who it's for (from primary persona + ICP pillar).
+3. What it does (from product + primary feature).
+4. Why it matters (from one customer-interview source quote, if present).
+5. Status + how to learn more (footer with version + link).
 
-These ship as runnable Jinja2 templates that consume typed-node queries but produce intentionally incomplete output flagged as scaffold. They exist so adopters can fill them in, and so the v1 contract for "doc-generate produces something for each" holds.
+Output formats: markdown, html. (Docx less useful for a one-pager; skipped unless requested.)
 
-### Idempotence
+### v1 scaffolded generators (v0.4.0)
 
-Re-running a generator on an unchanged vault produces byte-identical output modulo timestamps. This makes git diffs on `exports/` meaningful and prevents the "every regen looks different" anti-pattern.
+Each scaffold is a runnable Jinja2 template that consumes typed-node queries and produces a documented skeleton flagged as `scaffold` in the output footer. Adopters fill in the skeleton; full implementations land in v1.x.
 
-### Controlled-document footer
+#### PID (Project Initiation Document)
+Inputs: pillars, product, key stakeholders, `decision` nodes from the project's namespace, initial risk-insights. Length: 2–4 pages. Sections: purpose, scope, key stakeholders, success criteria, risks, milestones (placeholder).
 
-When `profile: medical-device`, every generated document gets:
+#### Project charter
+Inputs: a single pillar + a defined scope (manual at scaffold time) + stakeholder register. Length: 1 page. Sections: purpose, sponsor, objectives, scope, constraints, success criteria.
 
-> This is a planning artifact. It is not a controlled document and is not part of any design history file, risk management file, or traceability matrix per ISO 14971, IEC 62304, or 21 CFR 820.
+#### Stakeholder register
+Inputs: all `stakeholder` nodes. Length: 1–2 pages (table format). Columns: name, role, influence (high/med/low), interest (high/med/low), communication preference, comments. Markdown + xlsx.
+
+#### Risk register (planning-level, medical-device profile)
+Inputs: `risk-insight`, `hazard`, `hazardous-situation`, `harm`, `risk-control-idea`. Length: 1–3 pages. Table columns: id, hazard, hazardous situation, potential harm, candidate control, owner, status (planning / closed-planning / promoted-to-controlled). The footer is explicit: "This is a planning register, not a controlled risk management file per ISO 14971."
+
+#### Status report
+Inputs: `fact` snapshots from the period (filtered by date), `decision` nodes from the period, `question` nodes still open, recent `pattern` observations. Length: 1 page. Sections: what shipped, what changed (key facts), open questions, blockers, what's next.
+
+#### Meeting minutes
+Inputs: a single `source` node with `source_kind: meeting-notes` (or freshly captured via the `intake meeting-notes` sub-mode). Length: 1 page. Sections: attendees, decisions made, action items, open items. **Intentionally abbreviated against the PMBOK 12-page standard** — this is a planning summary, not a transcript.
+
+#### Lessons learned / close-out
+Inputs: `pattern` nodes from the project window, `decision` nodes (especially anti-decisions), `question` nodes that got resolved, `hypothesis` nodes that were confirmed/falsified. Length: 1–2 pages. Sections: what worked, what didn't, what we'd do differently, decisions reusable in future projects.
+
+#### Business plan
+Inputs: most of the vault — pillars (esp. ICP and pricing), product, product line, persona, customer, competitor, requirement, metric snapshots, sources. Length: 8–15 pages. Sections: executive summary, company overview, market analysis, product, business model, go-to-market, financials skeleton, team, risks, milestones.
+
+#### Sales battle card (per competitor)
+Inputs: one `competitor` node + its IFU history + clearance(s) + press-release sources + our pillars and non-goal pillars + decisions ruling out alternatives. Length: 1–2 pages per competitor. Sections: competitor at a glance, what they sell, where they're strong, where we win, common objections + how to handle, talking points to avoid (e.g., features we explicitly don't have because of a non-goal pillar). Generated per-competitor; one file per battle card in `exports/battle-cards/`.
+
+#### Competitive brief (full landscape)
+Inputs: all `competitor` nodes + their IFUs/clearances + market-data sources + press-release sources. Length: 3–5 pages. Sections: landscape overview, competitor matrix, IFU comparison summary, regulatory posture summary (med-device), trends, white-space opportunities.
+
+#### IFU comparison report (medical-device profile)
+Inputs: all `indication-for-use` nodes + their `preceded_by` chains + their parent products + corresponding clearances. Length: 2–4 pages. Sections: comparison matrix (rows: products; columns: population, condition, intervention, setting), IFU evolution timeline per competitor, gaps and differentiation opportunities, predicate-citation candidates for our planned clearances.
+
+#### Decision log / ADR roll-up
+Inputs: all `decision` nodes + non-goal `pillar` nodes. Length: 1–10 pages (scales with decision count). Sections: active decisions (grouped by namespace), anti-decisions (what we ruled out and why), non-goal pillars, recently-revisited decisions. Each decision rendered as a compact ADR-style block with title, status, context, decision, consequences.
+
+#### Press release / launch announcement
+Inputs: product + primary IFU + clearance (when present) + a customer-interview or strategic-thesis source + one pillar. Length: 1 page. Standard press-release structure: dateline, headline, subhead, lead paragraph, supporting quote, product details, regulatory note (med-device), about-us footer.
+
+#### Investor update
+Inputs: recent metric snapshots (`fact` nodes with `metric_id`), decisions from the period, open `question` nodes, recent `risk-insight` nodes, key milestones. Length: 1–2 pages. Sections: TL;DR, metrics this period, what shipped, what's next, asks, open risks/questions.
+
+#### Onboarding doc (for new team hires)
+Inputs: all auto-injecting pillars (the principles new hires should know first), key decisions, non-goal pillars (the "what we're not doing" boundaries), `concept` nodes (glossary), one persona, one customer reference. Length: 3–6 pages. Sections: welcome, what we do, who we serve, principles, what we're not doing, glossary, who to talk to.
+
+#### SRD (System Requirements Document)
+Inputs: `requirement` nodes with `requirement_class: system`, `feature` nodes, `use-case` nodes, `risk-insight` nodes (for system-level risks). Length: 5–15 pages. Sections: scope, system overview, functional requirements, non-functional requirements, interfaces, constraints, traceability to user/market requirements.
+
+#### SRS (Software Requirements Specification)
+Inputs: `requirement` nodes with `requirement_class: software`, `feature` nodes, `use-case` nodes. Length: 5–20 pages. Sections: scope, software architecture overview, functional requirements, non-functional requirements (performance, security, etc.), external interfaces, software-specific risks, traceability to system requirements.
+
+#### HRS (Hardware Requirements Specification)
+Inputs: `requirement` nodes with `requirement_class: hardware`, `feature` nodes, `use-case` nodes. Length: 5–20 pages. Sections: scope, hardware architecture overview, functional requirements, performance / environmental / mechanical requirements, external interfaces, hardware-specific risks, traceability to system requirements.
+
+#### Risk brainstorm (medical-device profile)
+Inputs: `risk-insight`, `hazard`, `hazardous-situation`, `harm`, `risk-control-idea`, related `decision` and `pillar` nodes. Length: 2–4 pages. Sections: open hazards under consideration, candidate mitigations, risk-control ideas not yet decided, residual-risk questions. Explicitly flagged as planning, not a controlled risk management file.
+
+### Cross-cutting conventions
+
+- **Idempotence.** Re-running a generator on an unchanged vault produces byte-identical output modulo timestamps. This makes git diffs on `exports/` meaningful.
+- **Profile-aware sections** are omitted entirely (not rendered empty) when the active profile doesn't enable them — see §8.
+- **Branding** comes from `_branding/`: `colors.yaml` for palette, optional `logo.png`, optional `templates/` overrides for any specific generator.
+- **Controlled-document footer.** When `profile: medical-device`, every generated document gets:
+
+  > This is a planning artifact. It is not a controlled document and is not part of any design history file, risk management file, or traceability matrix per ISO 14971, IEC 62304, or 21 CFR 820.
+
+- **Per-doc footers.** Each generator adds a short footer line stating "company-brain v0.X.Y — generated YYYY-MM-DD from vault at <path>" so a reader knows when the artifact was produced and from what version of the tool.
 
 ## 12. Vault as a git repository
 
@@ -651,10 +739,10 @@ Minimum version: whatever supports `skills/` directory format with frontmatter-d
 7. **`atomize` skill — markdown, Word, PDF**.
 8. **`atomize` skill — transcripts and image screenshots** (uses Claude vision for image text extraction).
 9. **`query` skill** — IB retrieval analyst, profile-aware.
-10. **`doc-generate` skill — MRD pipeline** — Jinja2 template, claim labeling, IFU comparison, source bibliography, anti-decision section, docx output. Consumes `_branding/` for assets and templates.
+10. **`doc-generate` skill — MRD + one-pager pipeline** — Jinja2 templates, claim labeling, IFU comparison, source bibliography, anti-decision section, docx output, branding integration. Consumes `_branding/` for assets and templates.
 11. **`visualize` skill + `cb viewer`** — D3 HTML generator with IFU-chain and predicate-tree view modes.
 12. **`maintain` skill** — decay + audit + repair, including `cb validate --fix` and INDEX.md regeneration.
-13. **`doc-generate` scaffolds** — PID, business plan, competitive brief, risk brainstorm stubs.
+13. **`doc-generate` scaffolds** — 19 scaffolded generators (see §11): PID, project charter, stakeholder register, risk register, status report, meeting minutes, lessons learned, business plan, sales battle card, competitive brief, IFU comparison report, decision log, press release, investor update, onboarding doc, SRD, SRS, HRS, risk brainstorm.
 14. **Second example vault** — `examples/saas-fictional/` to prove profile mechanism.
 15. **Public release** — README, LICENSE, onboarding guide, controlled-document-boundary doc, vault-as-git-repository doc, competitive-archive doc, CHANGELOG, v0.1.0 on github.com/nemock.
 
@@ -674,7 +762,7 @@ Documented here so v1 doesn't paint into corners that block v2.
 
 ## 19. Success criteria for v1
 
-- A new user can `uv tool install company-brain`, invoke `vault-architect` with `--profile medical-device`, complete a 30-minute vision intake session, atomize one project initiation Word doc and one transcript, import one competitor screenshot, paste one FDA 510(k) summary PDF, and generate an MRD that labels every claim by `source_kind` and includes a competitor IFU comparison table.
+- A new user can `uv tool install company-brain`, invoke `vault-architect` with `--profile medical-device`, complete a 30-minute vision intake session, atomize one project initiation Word doc and one transcript, import one competitor screenshot, paste one FDA 510(k) summary PDF, and generate an MRD that labels every claim by `source_kind` and includes a competitor IFU comparison table. They can also generate a one-pager and any of the 19 scaffolds for the same vault.
 - The scaffolded vault is a git repo from the moment it lands, with a meaningful initial commit. The user can `git remote add origin <bitbucket-url> && git push` and a teammate can clone, install skills, and continue contributing.
 - A teammate who has cloned the vault but has **not** installed company-brain can still open Obsidian, read every node, and view the latest `exports/MRD.md` and `exports/vault-graph.html`.
 - `examples/meddev-fictional/` and `examples/saas-fictional/` both pass `cb validate` with zero errors.
@@ -700,6 +788,8 @@ Resolved:
 - Branding folder: **`_branding/` at vault root**, holds logos, brand colors, fonts, optional doc-generate templates.
 - `exports/` and `_attachments/` committed by default in production vaults.
 - `_system/INDEX.md` generated and gitignored to avoid merge-conflict hotspots.
+- **Document library expanded** to 21 doc types (2 finished + 19 scaffolds in v1; full implementations across v1.x). Each doc type defines its own length norm — no project-wide abbreviation principle.
+- **`requirement_class` extended** to support `software` and `hardware` alongside `market` / `user` / `system`. Enables SRD / SRS / HRS generators to pick up the right requirements automatically.
 
 ## 21. Glossary
 
