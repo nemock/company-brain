@@ -186,7 +186,7 @@ _ENTITY_TYPES: tuple[NodeTypeSpec, ...] = (
             FieldSpec(
                 "requirement_class",
                 FieldType.STRING,
-                "One of: market, user, system.",
+                "One of: market, user, system, software, hardware. Drives which requirements-doc generator picks the node up.",
             ),
         ),
     ),

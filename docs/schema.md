@@ -142,7 +142,7 @@ profile_version: 1.0
 | Node type | Additional required fields |
 |---|---|
 | `source` | `source_kind`. Conditional: `producing_skill` (when `source_kind: skill-output`); `url`, `captured_at`, `captured_method`, `attachment` (when `source_kind: web-snapshot`). |
-| `requirement` | `requirement_class` (one of: `market`, `user`, `system`). |
+| `requirement` | `requirement_class` (one of: `market`, `user`, `system`, `software`, `hardware`). Drives which requirements-doc generator picks the node up: MRD ← `market`, SRD ← `system`, SRS ← `software`, HRS ← `hardware`. |
 | `metric` | `volatility_class` (one of: `low`, `medium`, `high`). |
 | `competitor` | `legal_name`, `canonical_url`. |
 | `indication-for-use` | `population`, `condition`, `intervention`, `setting`, `belongs_to_product`. |

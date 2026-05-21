@@ -308,6 +308,35 @@ requirement_class: bogus
     assert "invalid-requirement-class" in _issue_codes(issues)
 
 
+@pytest.mark.parametrize(
+    "valid_class", ["market", "user", "system", "software", "hardware"]
+)
+def test_requirement_class_accepts_all_five_values(tmp_path: Path, valid_class: str) -> None:
+    """All five requirement_class values are accepted; SRS/HRS need software/hardware."""
+
+    vault = _make_empty_vault(tmp_path)
+    (vault / "entities" / "requirements" / f"requirement-{valid_class}.md").write_text(
+        f"""---
+id: requirement-{valid_class}
+title: "Req"
+type: requirement
+namespace: test
+summary: "Valid class: {valid_class}"
+auto_inject: false
+confidence: 0.9
+verified_at: 2026-05-21
+verified_by: test
+edges: []
+controlled_document: false
+requirement_class: {valid_class}
+---
+""",
+        encoding="utf-8",
+    )
+    issues = validate(vault)
+    assert "invalid-requirement-class" not in _issue_codes(issues)
+
+
 def test_risk_node_without_controlled_document_false_is_error(tmp_path: Path) -> None:
     vault = _make_empty_vault(tmp_path)
     (vault / "risk" / "hazards" / "hazard-naughty.md").write_text(

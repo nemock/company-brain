@@ -438,7 +438,7 @@ def _check_type_specific_required_fields(
     return issues
 
 
-_VALID_REQUIREMENT_CLASSES = frozenset({"market", "user", "system"})
+_VALID_REQUIREMENT_CLASSES = frozenset({"market", "user", "system", "software", "hardware"})
 _VALID_VOLATILITY_CLASSES = frozenset({"low", "medium", "high"})
 
 
