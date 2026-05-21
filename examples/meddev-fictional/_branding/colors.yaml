@@ -1,0 +1,15 @@
+# Fictional Vitalisens brand palette.
+# All values are invented; this is an example for company-brain.
+# In a real vault, edit these to match your company's brand. Consumed by
+# jinja2 templates in src/company_brain/templates/.
+
+primary: "#1f3a5f"      # deep clinical blue
+secondary: "#3b82c4"    # supporting blue
+accent: "#10b981"       # mint accent for highlights
+text: "#1f2937"
+background: "#ffffff"
+muted: "#9ca3af"
+
+# Typography
+font_family_headings: "Inter, Helvetica Neue, Arial, sans-serif"
+font_family_body: "Source Serif Pro, Georgia, serif"

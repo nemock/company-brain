@@ -1,0 +1,16 @@
+# company-brain vault-level .gitignore
+# See https://github.com/nemock/company-brain — docs/vault-as-git-repository.md
+
+# Generated; rebuild with `cb` on demand
+_system/INDEX.md
+
+# Obsidian per-machine workspace state
+.obsidian/workspace*.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
