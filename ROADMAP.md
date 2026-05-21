@@ -18,10 +18,10 @@ Dates can be layered on later once the project owner has a sense of velocity. Or
 
 **Included:**
 - Schema definitions in `src/company_brain/schema/`: node types, edge types, frontmatter, profile mechanism.
-- `vault-architect` skill — creates a valid empty vault for a given profile, including `_system/`, `entities/`, `risk/` (medical-device), `_attachments/`, `exports/`.
+- `vault-architect` skill + `cb scaffold` — creates a valid empty vault for a given profile, including `_system/`, `entities/`, `risk/` (medical-device), `_attachments/`, `_branding/`, `exports/`. Runs `git init` and creates the initial commit by default (`--no-git` to opt out). Writes a vault-level `.gitignore` matched to the schema (notably gitignoring `_system/INDEX.md` since it's regenerated per intake).
 - `examples/meddev-fictional/` hand-built — patient monitoring wearable + replaceable sensor pad. Includes a competitor with two-version IFU history, a `regulatory-clearance` with predicate edges, a `web-snapshot` source with an attached PNG, decisions with `## What This Rules Out`, pillars-as-non-goals, and vision-source nodes.
 - `cb validate` CLI — exits clean on the example vault.
-- Repo created **public** at `github.com/nemock/company-brain` with `README.md` skeleton, `LICENSE` (MIT), `pyproject.toml`, `docs/controlled-document-boundary.md`. Public from day one — every v0.x commit is visible. The README's top line states this is pre-1.0 and under active development.
+- Repo created **public** at `github.com/nemock/company-brain` with `README.md` skeleton, `LICENSE` (MIT), `pyproject.toml`, `docs/controlled-document-boundary.md`, `docs/vault-as-git-repository.md`. Public from day one — every v0.x commit is visible. The README's top line states this is pre-1.0 and under active development.
 
 **Unlocks:** the schema is grounded in real-looking nodes and machine-validated. All downstream skills can target a known-good shape.
 
@@ -156,7 +156,9 @@ The features held back because v1 didn't need them and they would have widened t
 
 **Ecosystem:**
 - Optional MCP server exposing the vault as a queryable resource for other agents (Claude Code, Cursor, etc.).
-- Confluence / Notion / Obsidian Sync export adapters.
+
+**Probably not needed (revisit only on adopter demand):**
+- Confluence / Notion / Obsidian Sync export adapters. The git-push delivery model (GitHub / GitLab / Bitbucket / on-prem) covers the "publish into existing tooling" use case for most teams without a dedicated adapter.
 
 **Profile content:**
 - SaaS, hardware, services profile node types and intake sub-modes fleshed out.
@@ -167,5 +169,5 @@ The features held back because v1 didn't need them and they would have widened t
 
 - **Each v0.x milestone gates the next.** No parallelization until v1.0.0 ships. A small project shipping in order is easier to reason about than a large project shipping in parallel.
 - **Within a milestone, build example-vault content before validating in code.** Schema mistakes are cheaper to find by writing real-looking nodes than by writing tests against a hypothetical schema.
-- **The [PRD §16 build order](PRD.md) is the canonical step sequence within v1.0.0.** This roadmap aggregates those steps into shippable releases; the PRD is the authority on what each step contains.
+- **The [PRD §17 build order](PRD.md) is the canonical step sequence within v1.0.0.** This roadmap aggregates those steps into shippable releases; the PRD is the authority on what each step contains.
 - **v1.x and v2 reorder freely** based on user feedback after public release. The lists above are not in priority order.

@@ -1,8 +1,8 @@
 ---
 title: "company-brain — Product Requirements Document"
 status: draft
-version: 0.2.0
-date: 2026-05-20
+version: 0.3.0
+date: 2026-05-21
 controlled_document: false
 ---
 
@@ -13,6 +13,8 @@ controlled_document: false
 ## 1. Vision
 
 `company-brain` is a public, open-source set of Claude Code skills plus a Python CLI that lets a company build an AI-native knowledge graph of itself — products, people, decisions, vision, evidence, competitive landscape — and generate planning documents (starting with a Marketing Requirements Document) from that graph. The graph lives in Obsidian-compatible markdown so humans can browse it; the typed schema makes it cheap for agents to retrieve from.
+
+**A company's vault is itself a git repository.** It can stay local, or be pushed to GitHub, GitLab, Bitbucket, or an on-prem git host. Team members clone the repo to their own machines, navigate the knowledge graph in Obsidian or any markdown viewer, regenerate documents, and push changes back. Multi-user collaboration uses the same merge / PR / pull-request tools teams already use for source code — company-brain stays out of git's way rather than building a separate coordination layer.
 
 It is the layer **above** any controlled product-development records. For medical-device companies in particular, it is the place to think out loud about hazards, indications for use, requirements, competitors, and strategy without polluting design history, traceability, or risk management files.
 
@@ -29,10 +31,11 @@ Med-device companies have a sharper version of the problem: they need a place to
 ## 3. Target users
 
 - Solo founders and small teams building software, hardware, or hybrid products.
+- **Distributed teams** that want their planning knowledge to live alongside their code — same git host, same review tools, same access controls. Cloning the company vault should feel like cloning any other repo.
 - Medical-device teams who want a planning layer above their design controls.
-- Anyone already using the Infinite Brain or Second Brain patterns who needs to graduate to multi-product, multi-stakeholder knowledge with competitive intelligence built in.
+- Anyone already using the Infinite Brain or Second Brain patterns who needs to graduate to multi-product, multi-stakeholder, multi-contributor knowledge with competitive intelligence built in.
 
-Public GitHub under github.com/nemock. MIT-licensed. Friendly to fork, vendor, and extend.
+Public GitHub under github.com/nemock for the skills + CLI + examples. MIT-licensed. Friendly to fork, vendor, and extend. **Company vaults are separate, user-owned repositories** — typically private, hosted wherever the company hosts its other code.
 
 ## 4. v1 scope
 
@@ -43,6 +46,8 @@ A full pipeline:
 - Scaffolded (stubbed-but-runnable) generators for project initiation, business plan, competitive brief, risk brainstorm.
 - Python CLI (`cb`) shipped via `uv tool install` / `uvx`.
 - Schema with epistemic nodes + company entity nodes + opt-in medical-device profile (indications for use, regulatory clearances, hazards, etc.).
+- **Vault as git repository.** `cb scaffold` runs `git init` by default, writes a vault-level `.gitignore`, and makes an initial commit. Multi-user collaboration via standard git workflows.
+- **Branding folder** (`_branding/`) for logos, brand colors, fonts, and per-document templates that doc-generate consumes.
 - Vision intake — a dictation-friendly conversational sub-mode that turns rambling prose into typed nodes with full provenance.
 - Anti-decisions and non-goals as first-class concepts (decision template, pillars-as-non-goals).
 - Competitive archive — competitor entities with IFU history, regulatory clearances, predicate chains, and manual web-snapshot import.
@@ -67,17 +72,20 @@ A full pipeline:
 - Component dependency reasoning.
 - Recurring competitor monitoring jobs ("re-scan these 8 competitors monthly, alert me on IFU drift").
 - Headless-browser fetcher for JS-heavy sites without chrome-devtools-mcp.
-- Confluence / Notion / Obsidian Sync export adapters.
 - Optional MCP server exposing the vault as a queryable resource for other agents.
+
+### Probably not needed
+- **Confluence / Notion / Obsidian Sync export adapters** — git push to the corporate git host (GitHub, GitLab, Bitbucket, on-prem) already solves the "publish into existing tooling" use case for most teams. Revisit only if a real adopter need emerges.
 
 ### Permanently out of scope
 - Controlled-document generation. company-brain never produces a signed DHF, risk management file, traceability matrix, V&V protocol, or anything intended for regulatory submission.
 - Multi-tenant single-vault. One vault is one company.
+- Real-time multi-user editing. Collaboration is via git, not a separate sync layer.
 - Closed-source or cloud-hosted variants.
 
 ## 6. Architecture
 
-### Repo layout
+### Repo layout (the company-brain skills + CLI)
 
 ```
 company-brain/
@@ -95,6 +103,7 @@ company-brain/
 ├── src/company_brain/
 │   ├── cli.py                  # exposes `cb`
 │   ├── schema/                 # node/edge/profile definitions
+│   ├── scaffold.py             # vault scaffolding incl. git init
 │   ├── render/                 # docx, pptx, xlsx, md, html
 │   ├── intake/                 # docx, pdf, transcript, image, markdown parsers
 │   ├── viewer/                 # D3 HTML generator
@@ -106,21 +115,31 @@ company-brain/
     ├── schema.md
     ├── profiles.md
     ├── controlled-document-boundary.md
+    ├── vault-as-git-repository.md
     ├── competitive-archive.md
     └── adoption-guide.md
 ```
 
-### Vault layout (what users have on disk)
+### Vault layout (what users have on disk per company)
+
+A vault is a git repository. `cb scaffold` runs `git init` by default, writes a vault-level `.gitignore`, and makes an initial commit. Pass `--no-git` to opt out.
 
 ```
-my-company-vault/
+my-company-vault/                # the git repo root
+├── .git/                        # initialized by `cb scaffold` (committed history)
+├── .gitignore                   # vault-level — distinct from the company-brain repo's .gitignore
+├── README.md                    # written by scaffold; identifies the vault
 ├── _system/
-│   ├── PROFILE.md              # industry profile (e.g. medical-device)
-│   ├── INDEX.md
-│   ├── NODE-TYPES.md
-│   ├── EDGE-TYPES.md
-│   └── FRONTMATTER-SCHEMA.md
-├── pillars/                    # IB epistemic node folders
+│   ├── PROFILE.md               # industry profile (e.g. medical-device)
+│   ├── INDEX.md                 # GENERATED, GITIGNORED — rebuilt by `cb` on demand
+│   ├── NODE-TYPES.md            # rendered from schema; committed
+│   ├── EDGE-TYPES.md            # rendered from schema; committed
+│   └── FRONTMATTER-SCHEMA.md    # rendered from schema; committed
+├── _branding/                   # logos, brand colors, fonts, per-doc templates
+│   ├── logo.png                 # consumed by doc-generate
+│   ├── colors.yaml              # palette and typography choices
+│   └── templates/               # optional jinja2 overrides for doc-generate
+├── pillars/                     # IB epistemic node folders
 ├── decisions/
 ├── playbooks/
 ├── patterns/
@@ -130,7 +149,7 @@ my-company-vault/
 ├── sources/
 ├── questions/
 ├── notes/
-├── entities/                   # company entity nodes (sub-folders below)
+├── entities/                    # company entity nodes (sub-folders below)
 │   ├── products/
 │   ├── product-lines/
 │   ├── personas/
@@ -142,8 +161,8 @@ my-company-vault/
 │   ├── features/
 │   ├── use-cases/
 │   ├── metrics/
-│   └── indications-for-use/    # profile-conditional (medical-device)
-├── risk/                       # profile-conditional, medical-device only
+│   └── indications-for-use/     # profile-conditional (medical-device)
+├── risk/                        # profile-conditional, medical-device only
 │   ├── risk-insights/
 │   ├── hazards/
 │   ├── hazardous-situations/
@@ -152,14 +171,32 @@ my-company-vault/
 │   ├── regulations/
 │   ├── standards/
 │   └── regulatory-clearances/
-├── _attachments/               # binary captures: screenshots, PDFs, raw HTML
-└── exports/                    # generated documents
+├── _attachments/                # binary captures: screenshots, PDFs, raw HTML — COMMITTED by default
+└── exports/                     # generated documents (MRD, PID, etc.) — COMMITTED by default
 ```
+
+**Default vault `.gitignore`:**
+
+```gitignore
+# Generated; rebuild with `cb` on demand
+_system/INDEX.md
+
+# Local-only editor state
+.obsidian/workspace*.json
+
+# OS / editor cruft
+.DS_Store
+*.swp
+.vscode/
+```
+
+By default, `_attachments/` and `exports/` are **committed** so a team member who has cloned the repo but has not installed company-brain can still read the latest MRD or see the competitor screenshots referenced by source nodes. Users who don't want this can extend the vault `.gitignore` after scaffolding.
 
 ### Separation of concerns
 
 - **Skills** own all node writing. LLM-driven; conversational; produce markdown.
-- **CLI** owns rendering, validation, viewer generation, and analytics. Deterministic; never writes node content.
+- **CLI** owns rendering, validation, viewer generation, analytics, and git scaffolding. Deterministic; never writes node content.
+- **Git** owns versioning, distribution, and conflict resolution. company-brain stays out of git's way — no custom locking, no proprietary sync, no daemon. Standard `git pull` / `git push` / PR review are the multi-user model.
 
 This split mirrors graphify's pattern (deterministic tree-sitter parsing vs. LLM extraction for unstructured material) and keeps each layer testable independently.
 
@@ -353,6 +390,7 @@ The MRD generator pulls from:
 - `requirement` with `requirement_class: market` — the actual market requirements.
 - `metric` and recent `fact` snapshots — traction or absence-of-traction.
 - `source` (all kinds) — claim labeling.
+- `_branding/` — logos, colors, optional template overrides.
 
 Output structure (jinja2 template, profile-aware):
 
@@ -372,7 +410,7 @@ Output structure (jinja2 template, profile-aware):
 
 Profile-conditional sections are omitted entirely when the active profile doesn't enable them. A `default` or `saas` profile MRD has no Indications for Use or Regulatory Landscape sections at all, and its Competitive Landscape section excludes the clearance/IFU sub-paragraphs.
 
-Output formats: markdown (primary), docx, html.
+Output formats: markdown (primary), docx, html. Outputs land in `exports/`, which is committed by default so team members without skills can still read them.
 
 ### v1 scaffolded (stubs that run but produce skeleton output)
 
@@ -385,7 +423,7 @@ These ship as runnable Jinja2 templates that consume typed-node queries but prod
 
 ### Idempotence
 
-Re-running a generator on an unchanged vault produces byte-identical output modulo timestamps. This makes diffs meaningful and prevents the "every regen looks different" anti-pattern.
+Re-running a generator on an unchanged vault produces byte-identical output modulo timestamps. This makes git diffs on `exports/` meaningful and prevents the "every regen looks different" anti-pattern.
 
 ### Controlled-document footer
 
@@ -393,7 +431,67 @@ When `profile: medical-device`, every generated document gets:
 
 > This is a planning artifact. It is not a controlled document and is not part of any design history file, risk management file, or traceability matrix per ISO 14971, IEC 62304, or 21 CFR 820.
 
-## 12. Competitive archive
+## 12. Vault as a git repository
+
+A first-class feature of the v1 delivery model.
+
+### Why it matters
+
+A company's planning knowledge is more valuable when it can be shared, reviewed, and contributed to by multiple people on the team — without building a real-time collaboration layer. Git already solves this for source code. company-brain treats a vault as exactly the same kind of artifact.
+
+### What this means in practice
+
+- `cb scaffold` runs `git init` by default, writes a vault-level `.gitignore` matched to the company-brain schema, and creates an initial commit containing the scaffolded skeleton.
+- The vault repo can stay local indefinitely, or be pushed to any git host (GitHub, GitLab, Bitbucket, on-prem Gitea, etc.). company-brain does not care which.
+- Team members clone the vault repo to their own machines. With **just git + a markdown viewer**, they can read all node content, browse with Obsidian, and see the latest generated `exports/`. With the company-brain skills installed, they can also contribute — `intake`, `atomize`, `doc-generate`, etc.
+- Skills emit structured commit messages so the git history doubles as a knowledge-graph audit trail ("added founder-vision source `source-vision-saunders-2026`", "regenerated MRD", "updated competitor `competitor-cardiotrace-inc` IFU history").
+- Multi-user editing is via standard PR / merge-request workflows on the chosen host. Two people editing the same pillar produces a merge conflict; resolution is the same as for any other markdown conflict.
+
+### What we deliberately do not build
+
+- No real-time multi-user editing.
+- No proprietary sync daemon or special service.
+- No build-time database. The vault on disk is always the source of truth.
+- No fancy locking on top of git. If two people edit the same node, git's normal conflict-resolution applies.
+
+### Skills-aware vs. skills-unaware team members
+
+- **Skills installed**: can intake, atomize, regenerate documents, run `cb validate`, push their own changes.
+- **No skills installed**: can clone, read every markdown file, view exports (since exports are committed), view attachments, browse with Obsidian. Cannot contribute new nodes via the skills, but they can still hand-edit a markdown file if they understand the schema.
+
+This asymmetry is intentional. The skills are the productivity layer; the markdown vault is the open data layer.
+
+### Generated-file policy
+
+To keep merges clean, files that change on every contribution are gitignored at the vault level. The `cb` CLI rebuilds them on demand.
+
+| File | Policy | Why |
+|---|---|---|
+| `_system/INDEX.md` | Generated, gitignored | Touched by every intake/atomize; merge-conflict hotspot. |
+| `_system/NODE-TYPES.md`, `EDGE-TYPES.md`, `FRONTMATTER-SCHEMA.md` | Rendered from schema, committed | Stable across normal use; regenerated by `cb scaffold --force` on company-brain upgrades. |
+| `exports/*.md`, `exports/*.docx`, `exports/*.html` | Committed | Team members without skills still need to read them. Idempotent regeneration keeps diffs meaningful. |
+| `_attachments/**` | Committed | Part of the knowledge graph. Heavy on size but essential. Users who want lighter repos override in `.gitignore`. |
+| `_branding/**` | Committed | Brand assets are shared across the team. |
+
+### Recommended workflow for collaborative vaults
+
+1. One person scaffolds the vault and creates a remote (GitHub / Bitbucket / on-prem git).
+2. Team members clone.
+3. Routine intake / atomize work happens on `main` for small teams, on branches + PRs for larger teams that want review.
+4. Doc regeneration (`cb render-mrd` etc.) is typically run by whoever is publishing the document; the regenerated `exports/` are committed in the same PR.
+5. Heavyweight changes (new pillars, IFU updates) flow through PR review.
+
+### Hosting considerations
+
+| Host | Notes |
+|---|---|
+| GitHub (public or private) | Standard. Works out of the box. |
+| GitLab | Standard. Works out of the box. |
+| Bitbucket | Standard. Common in regulated industries already on Atlassian. Works out of the box. |
+| On-prem (Gitea, Forgejo, etc.) | Standard. Works out of the box. |
+| Local-only (no remote) | Fully supported. Single-user vaults can live indefinitely without a remote. |
+
+## 13. Competitive archive
 
 A first-class feature, not a side-channel. Justifies the schema additions in §7 and the intake sub-modes in §10.
 
@@ -404,7 +502,7 @@ For medical-device companies pursuing a 510(k), the **predicate device's indicat
 - **Competitor entities**, disambiguated by `legal_name` + `canonical_url`.
 - **Indications for use** — current and historical, chained via `preceded_by`.
 - **Regulatory clearances** — one node per clearance event, with predicate edges to other clearances (ours or theirs).
-- **Web snapshots** — page captures at a moment in time, stored as `source` nodes with the image/HTML in `_attachments/` and extracted text in the body.
+- **Web snapshots** — page captures at a moment in time, stored as `source` nodes with the image/HTML in `_attachments/` and extracted text in the body. Committed alongside everything else.
 - **Press releases** — date-stamped, as `source` nodes with `source_kind: press-release`.
 - **FDA 510(k) summary PDFs** — paste-and-atomize in v1; openFDA API in v1.x.
 - **Network-request manifests** — optional companion source nodes capturing the API endpoints and embedded services a competitor's page calls (`source_kind: web-snapshot-network`). Useful tech-stack intel.
@@ -433,11 +531,11 @@ For medical-device companies pursuing a 510(k), the **predicate device's indicat
 - Headless-browser fetcher for users without chrome-devtools-mcp.
 
 ### Practical considerations
-- **Storage growth.** Even text-stripped, 200 snapshots across 8 competitors over a year is a few hundred MB. The README documents this; `_attachments/` is `.gitignore`-able if vault is checked in. CLI provides `cb prune-snapshots --older-than 18mo --keep-changes` for housekeeping.
+- **Storage growth.** Even text-stripped, 200 snapshots across 8 competitors over a year is a few hundred MB. The README documents this; users can override the default-committed `_attachments/` policy if they want lighter clones. CLI provides `cb prune-snapshots --older-than 18mo --keep-changes` for housekeeping.
 - **JS-heavy sites.** v1's manual import bypasses this entirely. v1.x's chrome-devtools-mcp path bypasses it because Chrome renders the page.
 - **JS-heavy sites without chrome-devtools-mcp.** v1.x has no good story for these except manual import. v2 adds a headless-browser fetcher.
 - **Disambiguation.** All competitor fetches scope to the competitor's `canonical_url` domain to prevent name collisions.
-- **Legal posture.** Captures are of publicly accessible content for personal/internal analysis, stored locally, not redistributed. The README is explicit about this.
+- **Legal posture.** Captures are of publicly accessible content for personal/internal analysis, stored locally, not redistributed beyond the team that has access to the vault repo. The README is explicit about this.
 
 ### The queries this unlocks
 
@@ -449,7 +547,7 @@ For medical-device companies pursuing a 510(k), the **predicate device's indicat
 
 All of these reduce to typed-edge traversals against the schema. No special-case code; the same `query` skill handles them.
 
-## 13. Validation and maintenance
+## 14. Validation and maintenance
 
 ### `cb validate`
 
@@ -467,7 +565,7 @@ CLI command that exits non-zero on:
 `cb validate --fix` auto-repairs:
 
 - Missing inverse edges (the most common manual burden in IB-style vaults).
-- INDEX.md drift (missing or stale rows).
+- `_system/INDEX.md` rebuild (regenerated from the live node set; INDEX.md is gitignored, so the rebuild stays local).
 
 ### Confidence decay
 
@@ -482,9 +580,9 @@ Decay half-lives (defaults):
 
 Pillars, decisions, concepts, playbooks, patterns, hypotheses do **not** decay automatically.
 
-## 14. Visualization
+## 15. Visualization
 
-`cb viewer` emits a self-contained `vault-graph.html` to `exports/` with:
+`cb viewer` emits a self-contained `vault-graph.html` to `exports/` (committed) with:
 
 - Force-directed D3 layout.
 - Node coloring by type.
@@ -495,7 +593,14 @@ Pillars, decisions, concepts, playbooks, patterns, hypotheses do **not** decay a
 
 Lifted-inspiration from graphify; not lifted code. graphify's strength is source-code analysis via tree-sitter, which doesn't apply here. The viewer's UX patterns (the three-pane interactive HTML, the report file, the JSON export) are what we adopt.
 
-## 15. External dependencies
+Because the HTML is committed, team members without skills can still open `exports/vault-graph.html` in any browser and explore the graph visually.
+
+## 16. External dependencies
+
+### Required of the host system
+
+- **git** ≥ 2.20. Universal in developer environments. Used for the scaffold init, commits, and as the basis for the distribution model. `cb scaffold --no-git` is the opt-out for users without git installed.
+- **Python** ≥ 3.10.
 
 ### Python (installed automatically with `uv tool install company-brain`)
 
@@ -535,25 +640,25 @@ None of these are install-time dependencies.
 
 Minimum version: whatever supports `skills/` directory format with frontmatter-defined skills as of 2026-05.
 
-## 16. Build order
+## 17. Build order
 
-1. **Schema** — write `docs/schema.md`, define node + edge + profile + frontmatter in `src/company_brain/schema/`. Includes IFU, regulatory-clearance, all source_kinds, anti-decision template, non-goal pillar pattern. Data classes and validators only.
-2. **`vault-architect` skill** — produces a valid empty vault for a given profile, including `_attachments/`, `entities/indications-for-use/`, `risk/regulatory-clearances/`, and the rest of the medical-device folders.
+1. **Schema** — write `docs/schema.md`, define node + edge + profile + frontmatter in `src/company_brain/schema/`. Data classes and validators only.
+2. **`vault-architect` skill + `cb scaffold`** — produces a valid empty vault for a given profile, including `_attachments/`, `_branding/`, `entities/indications-for-use/`, `risk/regulatory-clearances/`, and the rest of the medical-device folders. Runs `git init` and creates the initial commit by default.
 3. **Hand-built example vault** — `examples/meddev-fictional/` populated by hand to stress-test the schema. Patient monitoring wearable + replaceable sensor pad. Includes: a competitor with two-version IFU history; a `regulatory-clearance` with predicate edges; a `web-snapshot` source with an attached PNG; decisions with `## What This Rules Out`; pillars-as-non-goals; vision-source nodes.
 4. **`cb validate`** — exits clean on the example vault. Tests written against it.
-5. **`intake` skill — `vision` and `product` sub-modes** — vision implements the six-phase flow.
+5. **`intake` skill — `vision` and `product` sub-modes** — vision implements the six-phase flow. Skills emit structured git commit messages for the changes they introduce.
 6. **`intake` skill — competitor sub-modes** — `competitor`, `competitor-ifu`, `competitor-clearance`, `competitor-snapshot` (manual screenshot import path).
 7. **`atomize` skill — markdown, Word, PDF**.
 8. **`atomize` skill — transcripts and image screenshots** (uses Claude vision for image text extraction).
 9. **`query` skill** — IB retrieval analyst, profile-aware.
-10. **`doc-generate` skill — MRD pipeline** — Jinja2 template, claim labeling, IFU comparison, source bibliography, anti-decision section, docx output.
+10. **`doc-generate` skill — MRD pipeline** — Jinja2 template, claim labeling, IFU comparison, source bibliography, anti-decision section, docx output. Consumes `_branding/` for assets and templates.
 11. **`visualize` skill + `cb viewer`** — D3 HTML generator with IFU-chain and predicate-tree view modes.
-12. **`maintain` skill** — decay + audit + repair, including `cb validate --fix`.
+12. **`maintain` skill** — decay + audit + repair, including `cb validate --fix` and INDEX.md regeneration.
 13. **`doc-generate` scaffolds** — PID, business plan, competitive brief, risk brainstorm stubs.
 14. **Second example vault** — `examples/saas-fictional/` to prove profile mechanism.
-15. **Public release** — README, LICENSE, onboarding guide, controlled-document-boundary doc, competitive-archive doc, CHANGELOG, v0.1.0 on github.com/nemock.
+15. **Public release** — README, LICENSE, onboarding guide, controlled-document-boundary doc, vault-as-git-repository doc, competitive-archive doc, CHANGELOG, v0.1.0 on github.com/nemock.
 
-## 17. v2 (deferred features)
+## 18. v2 (deferred features)
 
 Documented here so v1 doesn't paint into corners that block v2.
 
@@ -566,21 +671,19 @@ Documented here so v1 doesn't paint into corners that block v2.
 - **Recurring competitor monitoring with diff alerts.**
 - **Headless-browser fetcher** for JS-heavy sites without chrome-devtools-mcp.
 - **Optional MCP server** that exposes the vault as a queryable resource for other agents (Claude Code, Cursor, etc.).
-- **Confluence / Notion / Obsidian Sync export adapters** for teams that need to publish the vault into existing tooling.
 
-## 18. Success criteria for v1
+## 19. Success criteria for v1
 
 - A new user can `uv tool install company-brain`, invoke `vault-architect` with `--profile medical-device`, complete a 30-minute vision intake session, atomize one project initiation Word doc and one transcript, import one competitor screenshot, paste one FDA 510(k) summary PDF, and generate an MRD that labels every claim by `source_kind` and includes a competitor IFU comparison table.
+- The scaffolded vault is a git repo from the moment it lands, with a meaningful initial commit. The user can `git remote add origin <bitbucket-url> && git push` and a teammate can clone, install skills, and continue contributing.
+- A teammate who has cloned the vault but has **not** installed company-brain can still open Obsidian, read every node, and view the latest `exports/MRD.md` and `exports/vault-graph.html`.
 - `examples/meddev-fictional/` and `examples/saas-fictional/` both pass `cb validate` with zero errors.
 - The MRD generator demonstrably distinguishes vision-driven claims from evidence-driven claims, and includes a "What we are explicitly not doing" section sourced from anti-decisions and non-goal pillars.
 - The vision intake sub-mode survives a 5-minute messy dictated input and produces a useful set of typed nodes for review.
-- Repo is published on github.com/nemock under MIT license, with a working README, onboarding guide, competitive-archive doc, and the controlled-document-boundary disclaimer.
+- Repo is published on github.com/nemock under MIT license, with a working README, onboarding guide, vault-as-git-repository doc, competitive-archive doc, and the controlled-document-boundary disclaimer.
 
-## 19. Open items
+## 20. Open items
 
-- **Versioning**: semver from `0.1.0`. v1 release = `1.0.0`.
-- **Distribution beyond `uvx`**: not in v1.
-- **Telemetry**: none in v1. Public skills are local-only.
 All resolved.
 
 Resolved:
@@ -593,14 +696,20 @@ Resolved:
 - `cb fetch` polite HTTP fallback: **v1.x**, for users who haven't installed chrome-devtools-mcp.
 - Pilot vault: **entirely private**. No pilot content, structure, or patterns enter the public repo. The fictional `meddev-fictional` example is the only medical-device reference in the project.
 - Repo visibility: **public from day one**. v1.0.0 is the release tag and announcement, not the publication moment. README leads with a pre-1.0 under-active-development banner until v1.0.0 ships.
+- Vault is a git repository by default: **yes**, `cb scaffold` runs `git init` and commits the skeleton; opt-out via `--no-git`.
+- Branding folder: **`_branding/` at vault root**, holds logos, brand colors, fonts, optional doc-generate templates.
+- `exports/` and `_attachments/` committed by default in production vaults.
+- `_system/INDEX.md` generated and gitignored to avoid merge-conflict hotspots.
 
-## 20. Glossary
+## 21. Glossary
 
 - **Anti-decision**: a decision whose primary value is in what it rules out (e.g., "no physical documentation"). Captured as a `decision` node with a strong `## What This Rules Out` section.
 - **Atomic node**: a single markdown file holding one concept, with typed frontmatter.
-- **Attachments folder**: `_attachments/` inside the vault. Holds binary captures: screenshots, PDFs, raw HTML. Source nodes reference files here by relative path.
+- **Attachments folder**: `_attachments/` inside the vault. Holds binary captures: screenshots, PDFs, raw HTML. Committed by default. Source nodes reference files here by relative path.
+- **Branding folder**: `_branding/` inside the vault. Holds logos, brand colors, fonts, and optional jinja2 template overrides consumed by doc-generate. Committed.
 - **Controlled document**: a document under formal change-control as part of a quality system. company-brain produces **none** of these.
 - **Edge**: a typed, directional relationship between two nodes, declared in frontmatter.
+- **Exports folder**: `exports/` inside the vault. Holds generated documents (MRD, PID, etc.) and the visualizer HTML. Committed by default so team members without skills can still read the latest output.
 - **IFU (indication for use)**: the formal statement of what a medical device does, for whom, under what conditions, in what setting. In company-brain it is a node type with `population`, `condition`, `intervention`, `setting` fields. Versioned via a `preceded_by` chain.
 - **Industry profile**: a configuration that determines which node types and intake modes are active in a vault.
 - **Namespace**: a visibility scope on a node (workspace, brand, restricted, catalog).
@@ -608,5 +717,6 @@ Resolved:
 - **Predicate device**: in 510(k) clearance, the legally marketed device used to establish substantial equivalence. In company-brain, predicate relationships are first-class `preceded_by` edges between `regulatory-clearance` nodes.
 - **Provenance**: the chain from a claim to its origin via `derived_from` edges to `source` nodes.
 - **Regulatory clearance**: a specific clearance event (510(k), De Novo, PMA, etc.). One node per event.
-- **Vault**: the markdown folder that holds a single company's knowledge graph.
+- **Vault**: the markdown folder that holds a single company's knowledge graph. **A vault is also a git repository** — `cb scaffold` initializes it as one by default.
+- **Vault repository**: synonym for vault — emphasizes that the vault is a git-tracked, push/pull-able artifact, distinct from the company-brain skills repo.
 - **Web-snapshot**: a page captured at a moment in time, stored as a `source` node with the image/HTML in `_attachments/` and extracted text in the body.
