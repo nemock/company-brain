@@ -93,21 +93,38 @@ def scaffold_command(
     force: bool = typer.Option(
         False,
         "--force",
-        help="Regenerate _system/*.md even when those files already exist.",
+        help=(
+            "Regenerate _system/*.md, _branding/ starters, .gitignore, "
+            "and README.md even when those files already exist."
+        ),
+    ),
+    git: bool = typer.Option(
+        True,
+        "--git/--no-git",
+        help=(
+            "Initialize the vault as a git repository (default). Runs "
+            "`git init` and creates an initial commit. Pass --no-git to "
+            "scaffold without touching git (useful for example vaults "
+            "that live inside another git repo, or for users without git)."
+        ),
     ),
 ) -> None:
     """Scaffold a new company-brain vault.
 
     Creates the folder tree for the chosen profile, plus ``_attachments/``,
-    ``exports/``, and the ``_system/`` reference files (PROFILE.md, INDEX.md,
-    NODE-TYPES.md, EDGE-TYPES.md, FRONTMATTER-SCHEMA.md).
+    ``_branding/``, ``exports/``, and the ``_system/`` reference files
+    (PROFILE.md, INDEX.md, NODE-TYPES.md, EDGE-TYPES.md,
+    FRONTMATTER-SCHEMA.md). Writes a vault-level ``.gitignore`` and
+    ``README.md``. By default, runs ``git init`` and creates an initial
+    commit so the vault is ready to push to GitHub / GitLab / Bitbucket /
+    any git host.
 
     Does not write node content. Use the ``intake`` or ``atomize`` skill for
     that, then ``cb validate`` to check the vault.
     """
 
     try:
-        result = scaffold_vault(path.resolve(), profile, force=force)
+        result = scaffold_vault(path.resolve(), profile, force=force, init_git=git)
     except ProfileNotFoundError as exc:
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
@@ -118,14 +135,30 @@ def scaffold_command(
     typer.echo(f"Scaffolded company-brain vault at {result.vault_path}")
     typer.echo(f"  profile:           {result.profile_name}")
     typer.echo(f"  folders created:   {result.folder_count}")
-    typer.echo(f"  _system files:     {result.file_count}")
+    typer.echo(f"  files written:     {result.file_count}")
     if result.files_skipped:
         typer.secho(
             f"  files skipped:     {len(result.files_skipped)} (existed; pass --force to regenerate)",
             fg=typer.colors.YELLOW,
         )
+
+    if git:
+        if result.git_initialized and result.git_initial_commit:
+            typer.echo(f"  git:               initialized; initial commit {result.git_initial_commit[:10]}")
+        elif result.git_initialized:
+            typer.echo("  git:               initialized")
+        elif result.git_skipped_reason:
+            typer.secho(
+                f"  git:               skipped ({result.git_skipped_reason})",
+                fg=typer.colors.YELLOW,
+            )
+    else:
+        typer.echo("  git:               disabled (--no-git)")
+
     typer.echo("")
     typer.echo("Next steps:")
+    if git and result.git_initialized:
+        typer.echo("  - Add a remote: `git remote add origin <url>` then `git push -u origin main`.")
     typer.echo("  - Add knowledge via the `intake` or `atomize` skill.")
     typer.echo("  - Run `cb validate` (lands in v0.1.0 step 4).")
 

@@ -3,16 +3,24 @@
 Creates the on-disk structure for a new company-brain vault, including:
 
 * All node-type folders active for the chosen profile
-* ``_attachments/`` (heavy binaries — gitignored by convention)
-* ``exports/`` (generated documents)
+* ``_attachments/`` (binary captures — committed by default)
+* ``_branding/`` (logos, colors, optional doc templates — committed)
+* ``exports/`` (generated documents — committed)
 * ``_system/PROFILE.md`` declaring the active profile
-* ``_system/INDEX.md`` (empty starter)
+* ``_system/INDEX.md`` (starter; gitignored at the vault level)
 * ``_system/NODE-TYPES.md``, ``EDGE-TYPES.md``, ``FRONTMATTER-SCHEMA.md``
   rendered from :mod:`company_brain.schema` data filtered by profile
+* A vault-level ``.gitignore`` matched to the schema
+* A vault-level ``README.md`` identifying the vault
 
-Folder creation is idempotent. ``_system/*.md`` files refuse to overwrite by
-default; pass ``force=True`` to regenerate them (useful when the schema
-package has been updated and a vault needs its system docs refreshed).
+By default, ``scaffold()`` also runs ``git init``, writes the initial
+commit, and leaves the vault as a ready-to-push git repository. Pass
+``init_git=False`` to skip the git steps (useful for example vaults that
+live inside another git repo, or for users without git installed).
+
+Folder creation is idempotent. ``_system/*.md``, ``_branding/*``, and the
+vault ``.gitignore`` / ``README.md`` refuse to overwrite by default; pass
+``force=True`` to regenerate them.
 
 This module never writes node content. That is the job of the ``intake`` and
 ``atomize`` skills.
@@ -20,6 +28,8 @@ This module never writes node content. That is the job of the ``intake`` and
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -50,6 +60,9 @@ class VaultScaffoldResult:
     folders_created: list[Path] = field(default_factory=list)
     files_written: list[Path] = field(default_factory=list)
     files_skipped: list[Path] = field(default_factory=list)
+    git_initialized: bool = False
+    git_initial_commit: str | None = None
+    git_skipped_reason: str | None = None
 
     @property
     def folder_count(self) -> int:
@@ -74,6 +87,7 @@ def scaffold(
     profile_name: str,
     *,
     force: bool = False,
+    init_git: bool = True,
     today: date | None = None,
     verified_by: str | None = None,
 ) -> VaultScaffoldResult:
@@ -82,7 +96,11 @@ def scaffold(
     Args:
       vault_path: target directory. Created if missing.
       profile_name: must resolve to a registered profile.
-      force: if True, regenerate ``_system/*.md`` even when they already exist.
+      force: if True, regenerate ``_system/*.md``, ``_branding/`` starters,
+        ``.gitignore``, and ``README.md`` even when they already exist.
+      init_git: if True (default), run ``git init`` and create an initial
+        commit. No-op if the directory is already inside a git repo's
+        working tree or if git is not installed.
       today: override the scaffold date (for deterministic tests).
       verified_by: handle to use for ``verified_by`` in any seeded frontmatter.
         Not used in v0.1.0 since no nodes are written, but reserved.
@@ -127,12 +145,25 @@ def scaffold(
 
     system_dir = vault_path / "_system"
     for filename, content in system_files.items():
-        path = system_dir / filename
-        if path.exists() and not force:
-            result.files_skipped.append(path)
-            continue
-        path.write_text(content, encoding="utf-8")
-        result.files_written.append(path)
+        _write_or_skip(system_dir / filename, content, force=force, result=result)
+
+    # --- _branding starter files -------------------------------------------
+    branding_dir = vault_path / "_branding"
+    _write_or_skip(branding_dir / "colors.yaml", _render_branding_colors_yaml(), force=force, result=result)
+    _write_or_skip(branding_dir / "README.md", _render_branding_readme(), force=force, result=result)
+
+    # --- vault-level .gitignore and README ---------------------------------
+    _write_or_skip(vault_path / ".gitignore", _render_gitignore(), force=force, result=result)
+    _write_or_skip(
+        vault_path / "README.md",
+        _render_vault_readme(profile, today),
+        force=force,
+        result=result,
+    )
+
+    # --- git init + initial commit -----------------------------------------
+    if init_git:
+        _init_git_and_commit(vault_path, profile, result)
 
     return result
 
@@ -152,6 +183,7 @@ def _enumerate_folders(vault_path: Path, active_types: tuple[NodeTypeSpec, ...])
         vault_path,
         vault_path / "_system",
         vault_path / "_attachments",
+        vault_path / "_branding",
         vault_path / "exports",
     }
     for spec in active_types:
@@ -160,6 +192,23 @@ def _enumerate_folders(vault_path: Path, active_types: tuple[NodeTypeSpec, ...])
     # Sort so test assertions are stable. mkdir(parents=True) handles the
     # implied parent chain.
     return sorted(folder_set)
+
+
+# ---------------------------------------------------------------------------
+# File writer helper
+# ---------------------------------------------------------------------------
+
+
+def _write_or_skip(
+    path: Path, content: str, *, force: bool, result: VaultScaffoldResult
+) -> None:
+    """Write ``content`` to ``path`` unless it exists and ``force`` is False."""
+
+    if path.exists() and not force:
+        result.files_skipped.append(path)
+        return
+    path.write_text(content, encoding="utf-8")
+    result.files_written.append(path)
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +276,8 @@ def _render_index_md(profile: Profile) -> str:
 This file is the agent's primary entry point. The `maintain` skill keeps it in sync as nodes are added; for now it is a starter scaffold.
 
 **Active profile**: `{profile.name}`.
+
+> `_system/INDEX.md` is gitignored at the vault level. It is regenerated by `cb` on demand and is not part of the committed history. The committed authority is the per-folder node files.
 
 ## Retrieval protocol
 
@@ -357,3 +408,202 @@ def _render_frontmatter_schema_md(active_types: tuple[NodeTypeSpec, ...]) -> str
             lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _render_gitignore() -> str:
+    return """# company-brain vault-level .gitignore
+# See https://github.com/nemock/company-brain — docs/vault-as-git-repository.md
+
+# Generated; rebuild with `cb` on demand
+_system/INDEX.md
+
+# Obsidian per-machine workspace state
+.obsidian/workspace*.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+"""
+
+
+def _render_branding_colors_yaml() -> str:
+    return """# Brand colors and typography for company-brain doc-generate.
+# Edit to match your company's brand. Consumed by jinja2 templates in
+# src/company_brain/templates/ (overridable from _branding/templates/).
+
+primary: "#1f2a44"
+secondary: "#4f6cb6"
+accent: "#f59e0b"
+text: "#374151"
+background: "#ffffff"
+muted: "#9ca3af"
+
+# Typography
+font_family_headings: "Helvetica Neue, Arial, sans-serif"
+font_family_body: "Georgia, serif"
+"""
+
+
+def _render_branding_readme() -> str:
+    return """# _branding/
+
+Holds the company's brand assets for use by the `doc-generate` skill. Committed to git so all team members see the same brand on regenerated documents.
+
+## Files
+
+- `colors.yaml` — palette and typography. Edit to match your company's brand.
+- `logo.png` (optional) — primary logo used in document headers. Drop in if you have one.
+- `templates/` (optional) — jinja2 template overrides for specific documents. company-brain ships defaults; this folder lets you override.
+
+## Used by
+
+`doc-generate` reads from this folder when rendering MRD, PID, business plan, etc., to produce documents that match the company's brand.
+
+## Convention
+
+Anything in `_branding/` is committed by default. The folder is intentionally small — a logo, a colors file, optional templates. Heavier shared assets belong in `_attachments/`.
+"""
+
+
+def _render_vault_readme(profile: Profile, today: date) -> str:
+    return f"""# Company Brain Vault
+
+A [company-brain](https://github.com/nemock/company-brain) knowledge vault, scaffolded {today.isoformat()} for the **{profile.name}** profile.
+
+## What this is
+
+An AI-native knowledge graph of a company — products, people, decisions, vision, evidence, competitive landscape. The graph lives in Obsidian-compatible markdown so humans can browse it; the typed schema makes it cheap for agents to retrieve from.
+
+**This vault is a git repository.** Clone it, browse with any markdown viewer (Obsidian recommended), and read the latest generated documents from `exports/`. With the [company-brain](https://github.com/nemock/company-brain) skills installed, you can also contribute new nodes via the `intake` and `atomize` skills.
+
+## Layout
+
+| Path | What's there |
+|---|---|
+| `_system/` | Schema reference docs (rendered from the schema package). `INDEX.md` is gitignored and rebuilt on demand. |
+| `_branding/` | Logos, brand colors, fonts, optional doc templates. |
+| `_attachments/` | Binary captures: screenshots, PDFs, raw HTML. Referenced by source nodes. |
+| `exports/` | Generated documents (MRD, PID, etc.) and the visualizer HTML. |
+| `pillars/`, `decisions/`, `entities/`, `risk/`, ... | Node folders, one per node type. |
+
+## Controlled-document boundary
+
+This vault is a **planning** layer. It is not a controlled documentation system. See [company-brain's controlled-document-boundary doc](https://github.com/nemock/company-brain/blob/main/docs/controlled-document-boundary.md) before using this vault in any regulated context.
+
+## Maintenance
+
+- `cb validate` — check the vault for schema issues.
+- `cb scaffold --force` — regenerate `_system/*.md`, `_branding/` starters, and this README after a company-brain upgrade.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Git integration
+# ---------------------------------------------------------------------------
+
+
+def _init_git_and_commit(
+    vault_path: Path, profile: Profile, result: VaultScaffoldResult
+) -> None:
+    """Run ``git init`` and create the initial commit if appropriate.
+
+    No-ops (without error) when:
+      * git is not on PATH;
+      * ``vault_path`` is already inside a git working tree;
+      * the working tree already has commits (avoid trampling).
+
+    Sets ``result.git_initialized`` / ``result.git_initial_commit`` /
+    ``result.git_skipped_reason`` to reflect what happened.
+    """
+
+    git = shutil.which("git")
+    if git is None:
+        result.git_skipped_reason = "git not installed"
+        return
+
+    # Are we already inside someone else's git working tree?
+    inside_existing = _is_inside_git_working_tree(git, vault_path)
+
+    # Does vault_path itself already have a .git/ directory?
+    has_own_git_dir = (vault_path / ".git").is_dir()
+
+    if inside_existing and not has_own_git_dir:
+        result.git_skipped_reason = "vault_path is inside an existing git working tree"
+        return
+
+    if not has_own_git_dir:
+        _run_git(git, ["init", "-b", "main"], cwd=vault_path)
+        result.git_initialized = True
+
+    # If the repo already has commits, don't auto-commit again.
+    if _has_commits(git, vault_path):
+        result.git_skipped_reason = (result.git_skipped_reason or "") + (
+            " (no auto-commit: repo already has commits)"
+        ).lstrip()
+        return
+
+    # Stage and commit.
+    _run_git(git, ["add", "."], cwd=vault_path)
+
+    # Only commit if there's something staged.
+    status = _run_git(git, ["status", "--porcelain"], cwd=vault_path, capture=True)
+    if not status.strip():
+        result.git_skipped_reason = "nothing to commit"
+        return
+
+    commit_msg = (
+        f"Initial company-brain scaffold ({profile.name} profile)\n\n"
+        f"Scaffolded with company-brain v{__version__}.\n"
+    )
+    _run_git(git, ["commit", "-m", commit_msg], cwd=vault_path)
+
+    sha = _run_git(git, ["rev-parse", "HEAD"], cwd=vault_path, capture=True).strip()
+    result.git_initial_commit = sha or None
+
+
+def _is_inside_git_working_tree(git: str, cwd: Path) -> bool:
+    """Ask git whether ``cwd`` is inside an existing working tree."""
+
+    if not cwd.exists():
+        return False
+    try:
+        proc = subprocess.run(
+            [git, "rev-parse", "--is-inside-work-tree"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except (FileNotFoundError, OSError):
+        return False
+    return proc.returncode == 0 and proc.stdout.strip() == "true"
+
+
+def _has_commits(git: str, cwd: Path) -> bool:
+    proc = subprocess.run(
+        [git, "rev-parse", "--verify", "HEAD"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return proc.returncode == 0
+
+
+def _run_git(
+    git: str, args: list[str], *, cwd: Path, capture: bool = False
+) -> str:
+    """Run ``git <args>`` in ``cwd`` and return stdout (if capture) else ``''``."""
+
+    proc = subprocess.run(
+        [git, *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return proc.stdout if capture else ""
