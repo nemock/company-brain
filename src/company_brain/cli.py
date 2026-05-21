@@ -21,6 +21,7 @@ import typer
 from . import __version__
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
 from .schema import PROFILE_SPECS
+from .validator import VaultNotFoundError, summarize, validate
 
 app = typer.Typer(
     name="cb",
@@ -161,6 +162,75 @@ def scaffold_command(
         typer.echo("  - Add a remote: `git remote add origin <url>` then `git push -u origin main`.")
     typer.echo("  - Add knowledge via the `intake` or `atomize` skill.")
     typer.echo("  - Run `cb validate` (lands in v0.1.0 step 4).")
+
+
+@app.command("validate")
+def validate_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory to validate. Defaults to the current directory.",
+    ),
+    fix: bool = typer.Option(
+        False,
+        "--fix",
+        help=(
+            "Auto-fix issues where possible. v0.1.0 stub — full implementation "
+            "lands with the maintain skill in v0.4.0."
+        ),
+    ),
+) -> None:
+    """Validate a company-brain vault against the schema.
+
+    Loads every node markdown file in the vault, parses frontmatter, and
+    runs schema checks. Reports errors and warnings, then exits non-zero
+    if any errors were found.
+
+    Vault must contain ``_system/PROFILE.md`` declaring an active profile;
+    otherwise the path is not recognized as a vault.
+    """
+
+    try:
+        issues = validate(path.resolve())
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    # Stable sort by severity (errors first), then code.
+    severity_order = {"error": 0, "warning": 1, "info": 2}
+    issues_sorted = sorted(issues, key=lambda i: (severity_order.get(i.severity, 99), i.code, str(i.path or "")))
+
+    colors = {
+        "error": typer.colors.RED,
+        "warning": typer.colors.YELLOW,
+        "info": typer.colors.CYAN,
+    }
+
+    for issue in issues_sorted:
+        prefix = typer.style(
+            f"[{issue.severity}]", fg=colors.get(issue.severity, typer.colors.WHITE)
+        )
+        loc = f" ({issue.path})" if issue.path else ""
+        nid = f" {issue.node_id}" if issue.node_id else ""
+        typer.echo(f"{prefix} {issue.code}{nid}{loc}: {issue.message}")
+
+    counts = summarize(issues)
+    typer.echo("")
+    typer.echo(
+        f"Summary: {counts.get('error', 0)} error(s), "
+        f"{counts.get('warning', 0)} warning(s), "
+        f"{counts.get('info', 0)} info."
+    )
+
+    if fix:
+        typer.secho(
+            "  --fix is a stub in v0.1.0; full auto-fix lands in v0.4.0 with the maintain skill.",
+            fg=typer.colors.YELLOW,
+        )
+
+    if counts.get("error", 0) > 0:
+        raise typer.Exit(code=1)
 
 
 def main() -> None:
