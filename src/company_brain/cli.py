@@ -19,6 +19,16 @@ from pathlib import Path
 import typer
 
 from . import __version__
+from .intake_helpers import (
+    ExtractError,
+    ProfileLookupError,
+    UnknownNodeTypeError,
+    UnsupportedFormatError,
+    describe_node,
+    describe_profile,
+    extract_text,
+    to_json,
+)
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
 from .schema import PROFILE_SPECS
 from .validator import VaultNotFoundError, summarize, validate
@@ -231,6 +241,86 @@ def validate_command(
 
     if counts.get("error", 0) > 0:
         raise typer.Exit(code=1)
+
+
+@app.command("describe-node")
+def describe_node_command(
+    type_name: str = typer.Argument(
+        ...,
+        metavar="TYPE",
+        help="Node type name (e.g. 'pillar', 'indication-for-use').",
+    ),
+) -> None:
+    """Print a JSON description of a node type, including folder and required fields.
+
+    Read-only. Consumed by the intake/atomize skills to stay aligned with
+    the schema without re-implementing it.
+    """
+
+    try:
+        spec = describe_node(type_name)
+    except UnknownNodeTypeError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(to_json(spec))
+
+
+@app.command("describe-profile")
+def describe_profile_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory to read PROFILE.md from. Ignored if --name is set.",
+    ),
+    name: str | None = typer.Option(
+        None,
+        "--name",
+        "-n",
+        help="Profile name to describe directly (e.g. 'medical-device'). Bypasses PROFILE.md read.",
+    ),
+) -> None:
+    """Print a JSON description of a profile, including its active node types.
+
+    Reads the active profile from the vault's `_system/PROFILE.md` by default,
+    or describes a profile by name when `--name` is provided. Read-only.
+    """
+
+    try:
+        if name is not None:
+            data = describe_profile(profile_name=name)
+        else:
+            data = describe_profile(vault_path=path.resolve())
+    except ProfileLookupError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(to_json(data))
+
+
+@app.command("extract")
+def extract_command(
+    file: Path = typer.Argument(
+        ...,
+        metavar="FILE",
+        help="Path to a .docx or .pdf file to extract text from.",
+    ),
+) -> None:
+    """Extract text from a .docx or .pdf to stdout.
+
+    Used by the `atomize` skill to ingest binary documents. For markdown,
+    plain text, or transcripts, read the file directly. For images, use
+    Claude's native vision capabilities. Read-only.
+    """
+
+    try:
+        text = extract_text(file)
+    except UnsupportedFormatError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    except ExtractError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(text, nl=False)
 
 
 def main() -> None:
