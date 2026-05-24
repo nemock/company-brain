@@ -30,17 +30,21 @@ jobs:
       - name: Install as a uv tool
         run: uv tool install . --python ${{ matrix.python-version }}
 
-      - name: Verify CLI — version
+      - name: Verify CLI — version matches pyproject.toml
         run: |
-          version=$(cb --version)
-          echo "cb --version returned: $version"
-          test "$version" = "0.1.0"
+          expected=$(grep -E '^version = ' pyproject.toml | head -1 | sed -E 's/version = "(.*)"/\1/')
+          actual=$(cb --version)
+          echo "expected: $expected"
+          echo "actual:   $actual"
+          test "$actual" = "$expected"
 
       - name: Verify CLI — help
         run: cb --help
 
       - name: Verify CLI — banner (no args)
-        run: cb | grep -q "company-brain 0.1.0"
+        run: |
+          expected=$(grep -E '^version = ' pyproject.toml | head -1 | sed -E 's/version = "(.*)"/\1/')
+          cb | grep -q "company-brain ${expected}"
 
       - name: Lint with ruff
         run: uv run --extra dev ruff check src tests

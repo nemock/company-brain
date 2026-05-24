@@ -159,8 +159,6 @@ def test_render_mrd_docx_is_idempotent_in_visible_content(tmp_path: Path) -> Non
 def test_branded_html_reflects_custom_colors(tmp_path: Path) -> None:
     """Overriding _branding/colors.yaml propagates into the HTML CSS."""
 
-    import shutil
-
     vault = tmp_path / "vault"
     scaffold(vault, "default", init_git=False)
     branding_dir = vault / "_branding"
