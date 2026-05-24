@@ -36,6 +36,7 @@ from .intake_helpers import (
     to_json,
 )
 from .query_helpers import NodeNotFoundError, get_node, list_nodes
+from .render import render_mrd
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
 from .schema import PROFILE_SPECS
 from .validator import VaultNotFoundError, summarize, validate
@@ -358,6 +359,89 @@ def extract_command(
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(text, nl=False)
+
+
+_RENDER_DOC_CHOICES = ("mrd",)
+
+
+@app.command("render")
+def render_command(
+    doc: str = typer.Argument(
+        ...,
+        metavar="DOC",
+        help=f"Document to render. One of: {', '.join(_RENDER_DOC_CHOICES)}.",
+    ),
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+    out: Path | None = typer.Option(
+        None,
+        "--out",
+        "-o",
+        help=(
+            "Output path. Defaults to <vault>/exports/MRD.md (or the doc's "
+            "canonical name in exports/)."
+        ),
+    ),
+    date_override: str | None = typer.Option(
+        None,
+        "--date",
+        help=(
+            "Pin the generation date (YYYY-MM-DD). For idempotency assertions; "
+            "defaults to today."
+        ),
+    ),
+) -> None:
+    """Render a planning document from the vault.
+
+    v0.3.0 ships the MRD generator (markdown). The one-pager generator and
+    docx/html output formats land in subsequent v0.3.0 commits. The 19
+    scaffolded generators land in v0.4.0.
+    """
+
+    if doc not in _RENDER_DOC_CHOICES:
+        typer.secho(
+            f"error: unknown doc '{doc}'. One of: {', '.join(_RENDER_DOC_CHOICES)}.",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    gen_date = None
+    if date_override is not None:
+        from datetime import date
+
+        try:
+            gen_date = date.fromisoformat(date_override)
+        except ValueError as exc:
+            typer.secho(
+                f"error: --date must be YYYY-MM-DD ({exc})",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=2) from exc
+
+    try:
+        if doc == "mrd":
+            result = render_mrd(
+                path.resolve(),
+                output_path=out.resolve() if out is not None else None,
+                generation_date=gen_date,
+                write=True,
+            )
+        else:  # pragma: no cover - guarded by the choice check above
+            raise typer.Exit(code=2)
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    assert result.output_path is not None
+    typer.echo(f"Rendered {doc} → {result.output_path}")
+    typer.echo(f"  template:  {result.template_name}")
+    typer.echo(f"  bytes:     {len(result.content.encode('utf-8'))}")
 
 
 @app.command("list-nodes")

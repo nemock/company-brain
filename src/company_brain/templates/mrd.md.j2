@@ -1,0 +1,261 @@
+{# MRD template — profile-aware. Medical-device sections render only when
+   meta.is_medical_device is true. Generation date lives only in the footer
+   so the rest of the document is byte-stable across runs. #}
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+## 1. Executive summary
+
+{% if pillars_positive %}
+The {{ pillars_positive|length }} governing principle{{ 's' if pillars_positive|length != 1 else '' }} of this company shape every section that follows. The product set is anchored on {{ products|length }} product{{ 's' if products|length != 1 else '' }}{% if competitors %}, positioned against {{ competitors|length }} known competitor{{ 's' if competitors|length != 1 else '' }}{% endif %}.
+{% else %}
+This vault has not yet captured a positive pillar set; this MRD will read sparsely until the vision-intake flow has populated pillars.
+{% endif %}
+
+**Top principles:**
+{% if pillars_positive %}
+{% for pillar in pillars_positive %}
+- {{ pillar.cite }} **{{ pillar.title }}** — {{ pillar.summary }}
+{% endfor %}
+{% else %}
+- _No positive pillars captured yet._
+{% endif %}
+
+{% if pillars_non_goal %}
+**What we are explicitly not doing** (full detail in §10):
+{% for pillar in pillars_non_goal %}
+- {{ pillar.cite }} {{ pillar.title }}
+{% endfor %}
+{% endif %}
+
+## 2. Vision and positioning
+
+{% if pillars_positive %}
+The company's positioning rests on the following pillars:
+
+{% for pillar in pillars_positive %}
+### {{ pillar.title }} {{ pillar.cite }}
+
+{{ pillar.summary }}
+
+{% if pillar.applicable_when %}
+_Applies when:_ {{ pillar.applicable_when }}
+{% endif %}
+
+{% endfor %}
+{% else %}
+_No positive pillars captured yet. Run the `intake vision` sub-mode to populate them._
+{% endif %}
+
+{% if vision_sources %}
+**Vision sources** (founder-vision, strategic-thesis, domain-expertise):
+
+{% for src in vision_sources %}
+- {{ src.cite }} _{{ src.source_kind }}_ — {{ src.title }}
+{% endfor %}
+{% endif %}
+
+{% if meta.is_medical_device %}
+
+## 3. Indications for use
+
+{% if our_ifus %}
+**Our IFU{{ 's' if our_ifus|length != 1 else '' }}:**
+
+{% for ifu in our_ifus %}
+### {{ ifu.title }} {{ ifu.cite }}
+
+- **Population:** {{ ifu.population }}
+- **Condition:** {{ ifu.condition }}
+- **Intervention:** {{ ifu.intervention }}
+- **Setting:** {{ ifu.setting }}
+
+{% endfor %}
+{% else %}
+_No IFU has been captured for our product(s) yet._
+{% endif %}
+
+{% if ifu_comparison_rows %}
+**IFU comparison matrix** (latest IFU per product):
+
+| Product | Population | Condition | Intervention | Setting |
+|---|---|---|---|---|
+{% for row in ifu_comparison_rows %}
+| {{ row.product_title }} [{{ row.ifu_id }}] | {{ row.population }} | {{ row.condition }} | {{ row.intervention }} | {{ row.setting }} |
+{% endfor %}
+{% endif %}
+
+{% endif %}
+## {{ '4' if meta.is_medical_device else '3' }}. Market and personas
+
+{% if personas %}
+**Personas:**
+
+{% for persona in personas %}
+- {{ persona.cite }} **{{ persona.title }}** — {{ persona.summary }}
+{% endfor %}
+{% else %}
+_No personas captured yet._
+{% endif %}
+
+{% if customers %}
+
+**Named customer references:**
+
+{% for customer in customers %}
+- {{ customer.cite }} {{ customer.title }} — {{ customer.summary }}
+{% endfor %}
+{% endif %}
+
+## {{ '5' if meta.is_medical_device else '4' }}. Market requirements
+
+{% if market_requirements %}
+{% for req in market_requirements %}
+- {{ req.cite }} **{{ req.title }}** — {{ req.summary }}
+{% endfor %}
+{% else %}
+_No market-class requirements captured yet. Use the `intake` skill to add requirements with `requirement_class: market`._
+{% endif %}
+
+## {{ '6' if meta.is_medical_device else '5' }}. Competitive landscape
+
+{% if competitors %}
+{% for competitor in competitors %}
+### {{ competitor.title }} {{ competitor.cite }}
+
+{{ competitor.summary }}
+
+{% set bullets = [] %}
+{% if competitor.canonical_url %}
+{% set _ = bullets.append("- **Canonical URL:** " ~ competitor.canonical_url) %}
+{% endif %}
+{% if meta.is_medical_device and competitor.related_ifus %}
+{% set _ = bullets.append("- **IFU history:** " ~ competitor.related_ifus|map('format_cite')|join(", ")) %}
+{% endif %}
+{% if meta.is_medical_device and competitor.related_clearances %}
+{% set _ = bullets.append("- **Clearances:** " ~ competitor.related_clearances|map('format_cite')|join(", ")) %}
+{% endif %}
+{% for bullet in bullets %}
+{{ bullet }}
+{% endfor %}
+
+{% endfor %}
+{% else %}
+_No competitors captured yet._
+{% endif %}
+
+{% if meta.is_medical_device %}
+
+## 7. Regulatory landscape
+
+{% if clearances %}
+**Clearances tracked:**
+
+| Clearance | Type | Applicant | Device | Date | Predicates |
+|---|---|---|---|---|---|
+{% for clr in clearances %}
+| {{ clr.cite }} `{{ clr.clearance_number }}` | {{ clr.clearance_type }} | {{ clr.applicant }} | {{ clr.device_name }} | {{ clr.clearance_date }} | {% for pred in clr.predicates %}[{{ pred }}]{% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+{% else %}
+_No regulatory clearances captured yet._
+{% endif %}
+
+{% if regulations %}
+
+**Regulations referenced:**
+{% for reg in regulations %}
+- {{ reg.cite }} {{ reg.title }} — {{ reg.summary }}
+{% endfor %}
+{% endif %}
+
+{% if standards %}
+
+**Standards referenced:**
+{% for std in standards %}
+- {{ std.cite }} {{ std.title }} — {{ std.summary }}
+{% endfor %}
+{% endif %}
+
+{% endif %}
+## {{ '8' if meta.is_medical_device else '6' }}. Evidence vs. vision split
+
+A breakdown of which claims in this vault are grounded in evidence (customer interviews, market data, internal telemetry, FDA filings, web snapshots, press releases) and which are vision-driven (founder vision, strategic thesis, domain expertise). Both are legitimate; conflating them silently is the failure mode this section prevents.
+
+- **Evidence-derived claims:** {{ evidence_split.evidence_count }}
+- **Vision-derived claims:** {{ evidence_split.vision_count }}
+- **Uncited claims:** {{ evidence_split.uncited_count }}{% if evidence_split.uncited_count > 0 %} _(should be addressed — every load-bearing claim should derive from a source)_{% endif %}
+
+{% if evidence_split.uncited_nodes %}
+
+**Uncited claims to address:**
+{% for node in evidence_split.uncited_nodes %}
+- [{{ node.id }}] {{ node.title }}
+{% endfor %}
+{% endif %}
+
+## {{ '9' if meta.is_medical_device else '7' }}. Open questions
+
+{% if open_questions %}
+{% for question in open_questions %}
+- {{ question.cite }} **{{ question.title }}** — {{ question.summary }}
+{% endfor %}
+{% else %}
+_No open questions captured. (This is unusual — every active product has open questions.)_
+{% endif %}
+
+## {{ '10' if meta.is_medical_device else '8' }}. What we are explicitly not doing
+
+{% if pillars_non_goal or rules_out_decisions %}
+
+{% if pillars_non_goal %}
+**Non-goal pillars** (durable boundaries):
+
+{% for pillar in pillars_non_goal %}
+### {{ pillar.title }} {{ pillar.cite }}
+
+{{ pillar.summary }}
+
+{% if pillar.applicable_when %}
+_Applies when:_ {{ pillar.applicable_when }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if rules_out_decisions %}
+**Decisions and what they rule out:**
+
+{% for decision in rules_out_decisions %}
+### {{ decision.title }} {{ decision.cite }}
+
+{{ decision.rules_out }}
+
+{% endfor %}
+{% endif %}
+
+{% else %}
+_No anti-decisions or non-goal pillars captured yet. Vision intake's anti-decision sweep is the right place to surface these._
+{% endif %}
+
+## {{ '11' if meta.is_medical_device else '9' }}. Sources
+
+A bibliography of every source node in this vault, labeled by `source_kind`. Citations elsewhere in this document point at the node ids listed here.
+
+{% if all_sources %}
+| Source | Kind | Title |
+|---|---|---|
+{% for src in all_sources %}
+| {{ src.cite }} | {{ src.source_kind }} | {{ src.title }} |
+{% endfor %}
+{% else %}
+_No source nodes in this vault yet. Run `atomize` to ingest existing documents or `intake` to capture new sources._
+{% endif %}
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · MRD generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._
