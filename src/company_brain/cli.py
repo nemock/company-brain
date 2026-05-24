@@ -19,6 +19,7 @@ from pathlib import Path
 import typer
 
 from . import __version__
+from .install_skills import SkillSourceError, install_skills as install_skills_fn
 from .intake_helpers import (
     ExtractError,
     ProfileLookupError,
@@ -321,6 +322,88 @@ def extract_command(
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(text, nl=False)
+
+
+@app.command("install-skills")
+def install_skills_command(
+    source: Path = typer.Option(
+        Path("."),
+        "--source",
+        "-s",
+        help=(
+            "Path to the company-brain repo (must contain a skills/ directory). "
+            "Defaults to the current directory."
+        ),
+    ),
+    target: Path = typer.Option(
+        Path.home() / ".claude" / "skills",
+        "--target",
+        "-t",
+        help="Directory where Claude Code looks for skills. Default: ~/.claude/skills/.",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help=(
+            "Replace any existing file or symlink at target paths. Without --force, "
+            "conflicts are reported and skipped."
+        ),
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would happen without making any filesystem changes.",
+    ),
+) -> None:
+    """Symlink the company-brain skills into Claude Code's skill directory.
+
+    Run once after ``uv tool install`` so Claude Code can find the seven skills
+    shipped with company-brain (``vault-architect``, ``intake``, ``atomize``,
+    ``query``, ``doc-generate``, ``maintain``, ``visualize``).
+
+    Re-running is safe: symlinks already pointing at the right source are
+    reported as ``skipped``. Conflicts with existing files or links pointing
+    elsewhere are reported and skipped unless ``--force`` is passed.
+    """
+
+    try:
+        result = install_skills_fn(source, target, force=force, dry_run=dry_run)
+    except SkillSourceError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    if dry_run:
+        typer.secho("(dry-run; no changes will be made)", fg=typer.colors.CYAN)
+    typer.echo(f"source: {result.source}")
+    typer.echo(f"target: {result.target}")
+    if result.target_created:
+        typer.echo(f"  {'would create' if dry_run else 'created'} target directory")
+    typer.echo("")
+
+    for action in result.actions:
+        if action.status == "installed":
+            typer.secho(f"  installed   {action.name}", fg=typer.colors.GREEN)
+        elif action.status == "replaced":
+            typer.secho(f"  replaced    {action.name}", fg=typer.colors.GREEN)
+        elif action.status == "planned":
+            typer.secho(f"  would link  {action.name}  ({action.detail})", fg=typer.colors.CYAN)
+        elif action.status == "skipped":
+            typer.echo(f"  skipped     {action.name}  ({action.detail})")
+        elif action.status == "conflict":
+            typer.secho(
+                f"  conflict    {action.name}  ({action.detail})",
+                fg=typer.colors.YELLOW,
+            )
+
+    if result.conflicts:
+        typer.echo("")
+        typer.secho(
+            f"{len(result.conflicts)} conflict(s). Re-run with --force to replace, "
+            "or remove the existing entries manually.",
+            fg=typer.colors.YELLOW,
+            err=True,
+        )
+        raise typer.Exit(code=1)
 
 
 def main() -> None:
