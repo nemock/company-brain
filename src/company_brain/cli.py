@@ -4,8 +4,13 @@ This is the typer-based command framework. Subcommands are registered against
 the ``app`` Typer instance below as they land per the roadmap:
 
   - cb scaffold          (v0.1.0 — implemented)
-  - cb validate          (v0.1.0 — pending)
-  - cb render <doc>      (v0.3.0)
+  - cb validate          (v0.1.0 — implemented)
+  - cb describe-*        (v0.2.0 — implemented)
+  - cb extract           (v0.2.0 — implemented)
+  - cb install-skills    (v0.2.0 — implemented)
+  - cb list-nodes        (v0.3.0 — implemented)
+  - cb get-node          (v0.3.0 — implemented)
+  - cb render <doc>      (v0.3.0 — implemented)
   - cb viewer            (v0.4.0)
   - cb fetch <url>       (v1.x)
   - cb intake-510k <K>   (v1.x)
@@ -30,6 +35,7 @@ from .intake_helpers import (
     extract_text,
     to_json,
 )
+from .query_helpers import NodeNotFoundError, get_node, list_nodes
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
 from .schema import PROFILE_SPECS
 from .validator import VaultNotFoundError, summarize, validate
@@ -352,6 +358,94 @@ def extract_command(
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(text, nl=False)
+
+
+@app.command("list-nodes")
+def list_nodes_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory to query. Defaults to the current directory.",
+    ),
+    type_name: str | None = typer.Option(
+        None,
+        "--type",
+        "-t",
+        help="Filter to one node type (e.g. 'pillar', 'competitor').",
+    ),
+    namespace: str | None = typer.Option(
+        None,
+        "--namespace",
+        "-n",
+        help="Filter to one namespace.",
+    ),
+    auto_inject_only: bool = typer.Option(
+        False,
+        "--auto-inject-only",
+        help="Only return nodes with `auto_inject: true` (the pillars set).",
+    ),
+    source_kind: str | None = typer.Option(
+        None,
+        "--source-kind",
+        help="Filter source nodes by source_kind (e.g. 'fda-510k-summary').",
+    ),
+) -> None:
+    """List vault nodes as JSON. Used by the `query` skill for candidate selection.
+
+    Returns one object per matching node with the frontmatter fields that
+    matter for retrieval (id, title, type, namespace, summary, auto_inject,
+    applicable_when, confidence, verified_at, staleness_signal, tags, plus
+    relevant type-specific fields). Includes the outbound edge list.
+    Sorted by id for deterministic output.
+    """
+
+    try:
+        nodes = list_nodes(
+            path.resolve(),
+            type_name=type_name,
+            namespace=namespace,
+            auto_inject_only=auto_inject_only,
+            source_kind=source_kind,
+        )
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(to_json({"count": len(nodes), "nodes": nodes}))
+
+
+@app.command("get-node")
+def get_node_command(
+    node_id: str = typer.Argument(
+        ...,
+        metavar="ID",
+        help="The node id to fetch (e.g. 'pillar-icp-ambulatory-cardiac-patients').",
+    ),
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory to query. Defaults to the current directory.",
+    ),
+) -> None:
+    """Return one node's full frontmatter, body, and edges (both directions) as JSON.
+
+    The inbound-edges view is what makes typed edge walks cheap: when an
+    LLM asks 'what derives from this source?' or 'what depends on this
+    decision?', the answer is one CLI call instead of a vault-wide grep.
+    """
+
+    try:
+        data = get_node(path.resolve(), node_id)
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    except NodeNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(to_json(data))
 
 
 @app.command("install-skills")

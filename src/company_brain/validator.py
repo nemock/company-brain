@@ -28,11 +28,8 @@ v0.4.0 with the ``maintain`` skill. ``cb validate --fix`` is a stub here.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
-import yaml
 
 from .schema import (
     EDGE_TYPES,
@@ -40,39 +37,18 @@ from .schema import (
     get_active_node_types,
     get_node_type,
 )
+from .vault import Node, Vault, VaultNotFoundError, load_vault
 
 
-# ---------------------------------------------------------------------------
-# Data classes
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class Edge:
-    target: str
-    type: str
-    weight: float
-    note: str | None = None
-
-
-@dataclass
-class Node:
-    path: Path
-    id: str
-    type: str
-    frontmatter: dict[str, Any]
-    edges: list[Edge]
-
-
-@dataclass
-class Vault:
-    path: Path
-    profile_name: str | None
-    nodes: list[Node] = field(default_factory=list)
-
-    @property
-    def nodes_by_id(self) -> dict[str, Node]:
-        return {n.id: n for n in self.nodes}
+# Re-exported so existing callers (CLI, tests) keep working.
+__all__ = [
+    "Node",
+    "Vault",
+    "VaultNotFoundError",
+    "ValidationIssue",
+    "validate",
+    "summarize",
+]
 
 
 @dataclass(frozen=True)
@@ -85,10 +61,6 @@ class ValidationIssue:
     node_id: str | None = None
     path: Path | None = None
     fixable: bool = False
-
-
-class VaultNotFoundError(FileNotFoundError):
-    """Raised when the vault path is missing or doesn't look like a vault."""
 
 
 # ---------------------------------------------------------------------------
@@ -122,19 +94,7 @@ def validate(vault_path: Path) -> list[ValidationIssue]:
     doesn't have the basic shape of a vault.
     """
 
-    if not vault_path.exists():
-        raise VaultNotFoundError(f"{vault_path} does not exist")
-    if not vault_path.is_dir():
-        raise VaultNotFoundError(f"{vault_path} is not a directory")
-
-    profile_md = vault_path / "_system" / "PROFILE.md"
-    if not profile_md.is_file():
-        raise VaultNotFoundError(
-            f"{vault_path} does not look like a company-brain vault "
-            f"(missing _system/PROFILE.md)"
-        )
-
-    vault = _load_vault(vault_path)
+    vault = load_vault(vault_path)
 
     issues: list[ValidationIssue] = []
     issues.extend(_check_profile(vault))
@@ -142,125 +102,6 @@ def validate(vault_path: Path) -> list[ValidationIssue]:
     for node in vault.nodes:
         issues.extend(_check_node(node, vault))
     return issues
-
-
-# ---------------------------------------------------------------------------
-# Loader
-# ---------------------------------------------------------------------------
-
-
-# Folders we never crawl for nodes.
-_SKIP_DIR_NAMES = frozenset({"_system", "_attachments", "_branding", "exports", ".git"})
-
-
-def _load_vault(vault_path: Path) -> Vault:
-    profile_name = _read_active_profile(vault_path)
-    vault = Vault(path=vault_path, profile_name=profile_name)
-
-    for md_path in _iter_node_files(vault_path):
-        try:
-            node = _parse_node(md_path, vault_path)
-        except _NodeParseError:
-            # Unparseable nodes still get a placeholder so duplicate-id
-            # and folder checks can run. The caller will see the malformed
-            # file via the missing-frontmatter check.
-            continue
-        vault.nodes.append(node)
-    return vault
-
-
-def _read_active_profile(vault_path: Path) -> str | None:
-    profile_md = vault_path / "_system" / "PROFILE.md"
-    fm, _ = _split_frontmatter(profile_md.read_text(encoding="utf-8"))
-    if not fm:
-        return None
-    data = yaml.safe_load(fm) or {}
-    profile = data.get("profile")
-    return str(profile) if profile else None
-
-
-def _iter_node_files(vault_path: Path) -> list[Path]:
-    """Walk the vault, yielding every .md file that should be treated as a node.
-
-    Skips ``_system``, ``_attachments``, ``_branding``, ``exports``, ``.git``
-    subtrees and the top-level README.md.
-    """
-
-    results: list[Path] = []
-    for path in sorted(vault_path.rglob("*.md")):
-        # Skip files in excluded directories.
-        if any(part in _SKIP_DIR_NAMES for part in path.relative_to(vault_path).parts[:-1]):
-            continue
-        if path == vault_path / "README.md":
-            continue
-        # Top-level README of any subfolder is fine to treat as a node only if
-        # it has frontmatter; otherwise we'll skip during parse.
-        results.append(path)
-    return results
-
-
-class _NodeParseError(Exception):
-    pass
-
-
-def _parse_node(path: Path, vault_path: Path) -> Node:
-    text = path.read_text(encoding="utf-8")
-    fm_text, _body = _split_frontmatter(text)
-    if fm_text is None:
-        raise _NodeParseError(f"no frontmatter in {path}")
-    try:
-        fm = yaml.safe_load(fm_text) or {}
-    except yaml.YAMLError as exc:
-        raise _NodeParseError(f"YAML parse error in {path}: {exc}") from exc
-    if not isinstance(fm, dict):
-        raise _NodeParseError(f"frontmatter in {path} is not a mapping")
-
-    node_id = str(fm.get("id", ""))
-    node_type = str(fm.get("type", ""))
-
-    raw_edges = fm.get("edges") or []
-    edges: list[Edge] = []
-    if isinstance(raw_edges, list):
-        for raw in raw_edges:
-            if not isinstance(raw, dict):
-                continue
-            try:
-                edges.append(
-                    Edge(
-                        target=str(raw.get("target", "")),
-                        type=str(raw.get("type", "")),
-                        weight=float(raw.get("weight", 0.5)),
-                        note=raw.get("note"),
-                    )
-                )
-            except (TypeError, ValueError):
-                # malformed edge — we report it as a check finding via the
-                # per-node check; here we just skip to avoid crashing the
-                # loader.
-                continue
-
-    return Node(
-        path=path.relative_to(vault_path),
-        id=node_id,
-        type=node_type,
-        frontmatter=fm,
-        edges=edges,
-    )
-
-
-def _split_frontmatter(text: str) -> tuple[str | None, str]:
-    """Return (frontmatter_yaml, body). If no frontmatter, return (None, text)."""
-
-    if not text.startswith("---"):
-        return None, text
-    # Find the closing fence.
-    rest = text[3:]
-    end = rest.find("\n---")
-    if end == -1:
-        return None, text
-    fm = rest[:end].strip("\n")
-    body = rest[end + len("\n---"):]
-    return fm, body
 
 
 # ---------------------------------------------------------------------------
