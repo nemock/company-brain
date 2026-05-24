@@ -1,0 +1,55 @@
+{# One-pager template. Single page intentionally — no auto-expanding lists.
+   Section structure follows PRD §11. Sections degrade gracefully when the
+   vault is missing a primary product / pillar / persona / feature / interview. #}
+# {{ product.title if product else 'Product' }}
+
+{% if pillar %}
+> {{ pillar.summary }}
+{% else %}
+> _Primary pillar not yet captured. Run `intake vision` to define one._
+{% endif %}
+
+## Who it's for
+
+{% if persona %}
+**{{ persona.title }}** — {{ persona.summary }} {{ persona.cite }}
+{% else %}
+_No primary persona captured. Run `intake persona` to define one._
+{% endif %}
+
+## What it does
+
+{% if product %}
+{{ product.summary }} {{ product.cite }}
+
+{% if feature %}
+**Key feature:** {{ feature.title }} {{ feature.cite }}
+{{ feature.summary }}
+{% endif %}
+{% else %}
+_No product captured yet. Run `intake product` to define one._
+{% endif %}
+
+## Why it matters
+
+{% if interview %}
+{{ interview.summary }}
+
+— _from {{ interview.title }}_ {{ interview.cite }}
+{% else %}
+_No customer-interview source yet. Run `atomize` on a transcript or `intake meeting-notes` to capture one._
+{% endif %}
+
+## Learn more
+
+- Vault: `{{ meta.vault_path }}`
+- Profile: `{{ meta.profile }}`
+- For the full picture, see the MRD generated alongside this one-pager (`exports/MRD.md`).
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · one-pager generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

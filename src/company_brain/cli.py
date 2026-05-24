@@ -36,7 +36,7 @@ from .intake_helpers import (
     to_json,
 )
 from .query_helpers import NodeNotFoundError, get_node, list_nodes
-from .render import render_mrd
+from .render import render_mrd, render_one_pager
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
 from .schema import PROFILE_SPECS
 from .validator import VaultNotFoundError, summarize, validate
@@ -361,7 +361,7 @@ def extract_command(
     typer.echo(text, nl=False)
 
 
-_RENDER_DOC_CHOICES = ("mrd",)
+_RENDER_DOC_CHOICES = ("mrd", "one-pager")
 
 
 @app.command("render")
@@ -427,6 +427,13 @@ def render_command(
     try:
         if doc == "mrd":
             result = render_mrd(
+                path.resolve(),
+                output_path=out.resolve() if out is not None else None,
+                generation_date=gen_date,
+                write=True,
+            )
+        elif doc == "one-pager":
+            result = render_one_pager(
                 path.resolve(),
                 output_path=out.resolve() if out is not None else None,
                 generation_date=gen_date,
