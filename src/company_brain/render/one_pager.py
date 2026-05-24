@@ -27,8 +27,10 @@ from typing import Any
 from .. import __version__
 from ..vault import Node, Vault, load_vault
 from .engine import build_environment, load_branding
+from .html_writer import render_html
 from .mrd import (
     _CONTROLLED_DOCUMENT_FOOTER,
+    _FORMAT_EXTENSIONS,
     RenderResult,
     _by_type,
     _is_non_goal,
@@ -38,18 +40,28 @@ from .mrd import (
 )
 
 
+_ONE_PAGER_FORMATS = {"markdown", "html"}
+
+
 def render_one_pager(
     vault_path: Path,
     *,
     output_path: Path | None = None,
     generation_date: date | None = None,
     write: bool = True,
+    output_format: str = "markdown",
 ) -> RenderResult:
     """Render the one-pager for the vault at ``vault_path``.
 
-    When ``write`` is true, writes to ``output_path`` (defaults to
-    ``<vault>/exports/one-pager.md``).
+    Supports ``output_format`` ``markdown`` (default) and ``html``. Docx is
+    not supported for the one-pager per PRD §11 ("Docx less useful for a
+    one-pager; skipped unless requested").
     """
+
+    if output_format not in _ONE_PAGER_FORMATS:
+        raise ValueError(
+            f"one-pager supports {sorted(_ONE_PAGER_FORMATS)}; got '{output_format}'"
+        )
 
     vault = load_vault(vault_path)
     branding = load_branding(vault_path)
@@ -61,23 +73,34 @@ def render_one_pager(
         branding=branding,
         generation_date=generation_date or date.today(),
     )
-    content = template.render(**context)
+    body_markdown = template.render(**context)
 
-    if write:
-        target = output_path or (vault_path / "exports" / "one-pager.md")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
-        return RenderResult(
-            content=content,
-            output_path=target,
-            template_name="one-pager.md.j2",
+    target = output_path or (
+        vault_path / "exports" / f"one-pager{_FORMAT_EXTENSIONS[output_format]}"
+    )
+
+    if output_format == "markdown":
+        content: str = body_markdown
+        if write:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+    else:  # html
+        content = render_html(
+            title=context["meta"]["doc_title"],
+            body_markdown=body_markdown,
             branding=branding,
+            vault_path=vault_path,
         )
+        if write:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+
     return RenderResult(
         content=content,
-        output_path=None,
+        output_path=target if write else None,
         template_name="one-pager.md.j2",
         branding=branding,
+        output_format=output_format,
     )
 
 

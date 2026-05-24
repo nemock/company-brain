@@ -362,6 +362,7 @@ def extract_command(
 
 
 _RENDER_DOC_CHOICES = ("mrd", "one-pager")
+_RENDER_FORMAT_CHOICES = ("markdown", "html", "docx")
 
 
 @app.command("render")
@@ -382,8 +383,17 @@ def render_command(
         "--out",
         "-o",
         help=(
-            "Output path. Defaults to <vault>/exports/MRD.md (or the doc's "
-            "canonical name in exports/)."
+            "Output path. Defaults to <vault>/exports/<doc>.<ext> where "
+            "ext is .md / .html / .docx per --format."
+        ),
+    ),
+    output_format: str = typer.Option(
+        "markdown",
+        "--format",
+        "-f",
+        help=(
+            f"Output format. One of: {', '.join(_RENDER_FORMAT_CHOICES)}. "
+            "The one-pager doesn't support docx (use markdown or html)."
         ),
     ),
     date_override: str | None = typer.Option(
@@ -397,14 +407,21 @@ def render_command(
 ) -> None:
     """Render a planning document from the vault.
 
-    v0.3.0 ships the MRD generator (markdown). The one-pager generator and
-    docx/html output formats land in subsequent v0.3.0 commits. The 19
-    scaffolded generators land in v0.4.0.
+    v0.3.0 ships the MRD generator (markdown/html/docx) and the one-pager
+    generator (markdown/html). The 19 scaffolded generators land in v0.4.0.
     """
 
     if doc not in _RENDER_DOC_CHOICES:
         typer.secho(
             f"error: unknown doc '{doc}'. One of: {', '.join(_RENDER_DOC_CHOICES)}.",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if output_format not in _RENDER_FORMAT_CHOICES:
+        typer.secho(
+            f"error: unknown format '{output_format}'. One of: {', '.join(_RENDER_FORMAT_CHOICES)}.",
             fg=typer.colors.RED,
             err=True,
         )
@@ -431,13 +448,23 @@ def render_command(
                 output_path=out.resolve() if out is not None else None,
                 generation_date=gen_date,
                 write=True,
+                output_format=output_format,
             )
         elif doc == "one-pager":
+            if output_format == "docx":
+                typer.secho(
+                    "error: the one-pager doesn't ship a docx writer "
+                    "(PRD §11). Use --format markdown or --format html.",
+                    fg=typer.colors.RED,
+                    err=True,
+                )
+                raise typer.Exit(code=2)
             result = render_one_pager(
                 path.resolve(),
                 output_path=out.resolve() if out is not None else None,
                 generation_date=gen_date,
                 write=True,
+                output_format=output_format,
             )
         else:  # pragma: no cover - guarded by the choice check above
             raise typer.Exit(code=2)
@@ -446,9 +473,14 @@ def render_command(
         raise typer.Exit(code=2) from exc
 
     assert result.output_path is not None
-    typer.echo(f"Rendered {doc} → {result.output_path}")
+    size = (
+        len(result.content)
+        if isinstance(result.content, (bytes, bytearray))
+        else len(result.content.encode("utf-8"))
+    )
+    typer.echo(f"Rendered {doc} ({output_format}) → {result.output_path}")
     typer.echo(f"  template:  {result.template_name}")
-    typer.echo(f"  bytes:     {len(result.content.encode('utf-8'))}")
+    typer.echo(f"  bytes:     {size}")
 
 
 @app.command("list-nodes")

@@ -35,7 +35,9 @@ from typing import Any
 
 from .. import __version__
 from ..vault import Node, Vault, load_vault
+from .docx_writer import render_docx
 from .engine import Branding, build_environment, load_branding
+from .html_writer import render_html
 
 
 # Source kinds that flag a claim as vision-driven vs. evidence-driven.
@@ -70,10 +72,14 @@ _CONTROLLED_DOCUMENT_FOOTER = (
 class RenderResult:
     """The result of rendering one document."""
 
-    content: str
+    content: str | bytes
     output_path: Path | None
     template_name: str
     branding: Branding
+    output_format: str = "markdown"
+
+
+_FORMAT_EXTENSIONS = {"markdown": ".md", "html": ".html", "docx": ".docx"}
 
 
 def render_mrd(
@@ -82,16 +88,23 @@ def render_mrd(
     output_path: Path | None = None,
     generation_date: date | None = None,
     write: bool = True,
+    output_format: str = "markdown",
 ) -> RenderResult:
     """Render the MRD for the vault at ``vault_path``.
 
-    When ``write`` is true, the rendered markdown is written to
-    ``output_path`` (defaults to ``<vault>/exports/MRD.md``) and the
-    parent directory is created if needed.
+    ``output_format`` is one of ``markdown`` (default), ``html``, or ``docx``.
+    When ``write`` is true, the result is written to ``output_path`` (defaults
+    to ``<vault>/exports/MRD<ext>`` with the extension chosen by format).
 
     ``generation_date`` lets tests pin the date for idempotency assertions.
     Defaults to today's date.
     """
+
+    if output_format not in _FORMAT_EXTENSIONS:
+        raise ValueError(
+            f"unknown output_format '{output_format}'; "
+            f"one of: {', '.join(_FORMAT_EXTENSIONS)}"
+        )
 
     vault = load_vault(vault_path)
     branding = load_branding(vault_path)
@@ -103,23 +116,42 @@ def render_mrd(
         branding=branding,
         generation_date=generation_date or date.today(),
     )
-    content = template.render(**context)
+    body_markdown = template.render(**context)
 
-    if write:
-        target = output_path or (vault_path / "exports" / "MRD.md")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
-        return RenderResult(
-            content=content,
-            output_path=target,
-            template_name="mrd.md.j2",
+    target = output_path or (
+        vault_path / "exports" / f"MRD{_FORMAT_EXTENSIONS[output_format]}"
+    )
+
+    content: str | bytes
+    if output_format == "markdown":
+        content = body_markdown
+        if write:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+    elif output_format == "html":
+        content = render_html(
+            title=context["meta"]["doc_title"],
+            body_markdown=body_markdown,
             branding=branding,
+            vault_path=vault_path,
         )
+        if write:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+    else:  # docx
+        content = render_docx(
+            title=context["meta"]["doc_title"],
+            body_markdown=body_markdown,
+            branding=branding,
+            output_path=target if write else None,
+        )
+
     return RenderResult(
         content=content,
-        output_path=None,
+        output_path=target if write else None,
         template_name="mrd.md.j2",
         branding=branding,
+        output_format=output_format,
     )
 
 

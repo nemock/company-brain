@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marketing Requirements Document</title>
+  <style>
+    :root {
+      --cb-primary: #1f3a5f;
+      --cb-secondary: #3b82c4;
+      --cb-accent: #10b981;
+      --cb-text: #1f2937;
+      --cb-background: #ffffff;
+      --cb-muted: #9ca3af;
+    }
+    html { background: var(--cb-background); color: var(--cb-text); }
+    body {
+      max-width: 820px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      font-family: Source Serif Pro, Georgia, serif;
+      line-height: 1.55;
+    }
+    h1, h2, h3, h4 {
+      font-family: Inter, Helvetica Neue, Arial, sans-serif;
+      color: var(--cb-primary);
+      line-height: 1.25;
+    }
+    h1 { border-bottom: 2px solid var(--cb-primary); padding-bottom: 0.4rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid var(--cb-muted); padding-bottom: 0.2rem; }
+    h3 { margin-top: 1.5rem; color: var(--cb-secondary); }
+    a { color: var(--cb-secondary); }
+    blockquote {
+      border-left: 4px solid var(--cb-accent);
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      background: rgba(0, 0, 0, 0.025);
+      color: var(--cb-text);
+    }
+    code { background: rgba(0, 0, 0, 0.05); padding: 0.1rem 0.3rem; border-radius: 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+    }
+    th, td { border: 1px solid var(--cb-muted); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: var(--cb-primary); color: var(--cb-background); }
+    hr { border: 0; border-top: 1px solid var(--cb-muted); margin: 2rem 0; }
+    footer { margin-top: 2rem; color: var(--cb-muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+<h1>Marketing Requirements Document</h1>
+<blockquote>
+<p>Vault: <code>/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/meddev-fictional</code> · Profile: <code>medical-device</code></p>
+</blockquote>
+<h2>1. Executive summary</h2>
+<p>The 2 governing principles of this company shape every section that follows. The product set is anchored on 2 products, positioned against 2 known competitors.</p>
+<p><strong>Top principles:</strong></p>
+<ul>
+<li>[pillar-disposable-pad-business-model] <strong>Disposable Pad as the Recurring-Revenue Engine</strong> — The Vitalisens Pad is a 7-day replaceable disposable; recurring pad revenue, not the wearable, is the long-term unit economic.</li>
+<li>[pillar-icp-ambulatory-cardiac-patients] <strong>ICP: Adult Ambulatory Cardiac Patients</strong> — We serve adult cardiac patients in ambulatory settings during the 7- to 30-day window after a cardiac event or during arrhythmia workup.</li>
+</ul>
+<p><strong>What we are explicitly not doing</strong> (full detail in §10):</p>
+<ul>
+<li>[pillar-no-pediatric-use] Non-Goal: We Do Not Pursue Pediatric Use</li>
+<li>[pillar-no-physical-documentation] Non-Goal: No Physical Documentation</li>
+</ul>
+<h2>2. Vision and positioning</h2>
+<p>The company's positioning rests on the following pillars:</p>
+<h3>Disposable Pad as the Recurring-Revenue Engine [pillar-disposable-pad-business-model]</h3>
+<p>The Vitalisens Pad is a 7-day replaceable disposable; recurring pad revenue, not the wearable, is the long-term unit economic.</p>
+<p><em>Applies when:</em> pricing, business model, pad, disposable, recurring revenue, unit economics, LTV, reimbursement, channel</p>
+<h3>ICP: Adult Ambulatory Cardiac Patients [pillar-icp-ambulatory-cardiac-patients]</h3>
+<p>We serve adult cardiac patients in ambulatory settings during the 7- to 30-day window after a cardiac event or during arrhythmia workup.</p>
+<p><em>Applies when:</em> ICP, target market, audience, indication scope, patient population, who we serve, expansion, pediatric, geriatric, in-patient, home-health</p>
+<p><strong>Vision sources</strong> (founder-vision, strategic-thesis, domain-expertise):</p>
+<ul>
+<li>[source-domain-expertise-saunders-cardiology-2026] <em>domain-expertise</em> — Domain Expertise: Saunders, 20 Years of Cardiology Workflow</li>
+<li>[source-strategic-thesis-disposable-pad-recurring-revenue] <em>strategic-thesis</em> — Strategic Thesis: Disposable Pad as Recurring Revenue Engine</li>
+<li>[source-vision-saunders-2026-cardiac-workflow-thesis] <em>founder-vision</em> — Founder Vision: The Cardiac Workflow Bottleneck (Saunders, 2026)</li>
+</ul>
+<h2>3. Indications for use</h2>
+<p><strong>Our IFU:</strong></p>
+<h3>IFU: Vitalisens Cardio (planned, 2026 Q1) [indication-for-use-vitalisens-cardio-2026-q1]</h3>
+<ul>
+<li><strong>Population:</strong> Adult patients aged 18 years and older</li>
+<li><strong>Condition:</strong> Suspected cardiac arrhythmia or post-cardiac-event surveillance</li>
+<li><strong>Intervention:</strong> Continuous ambulatory ECG recording over a 7-day pad cycle, transmitted to a clinician-reviewable application</li>
+<li><strong>Setting:</strong> Home and outpatient clinical settings; not for in-patient acute monitoring</li>
+</ul>
+<p><strong>IFU comparison matrix</strong> (latest IFU per product):</p>
+<table>
+<thead>
+<tr>
+<th>Product</th>
+<th>Population</th>
+<th>Condition</th>
+<th>Intervention</th>
+<th>Setting</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vitalisens Cardio [indication-for-use-vitalisens-cardio-2026-q1]</td>
+<td>Adult patients aged 18 years and older</td>
+<td>Suspected cardiac arrhythmia or post-cardiac-event surveillance</td>
+<td>Continuous ambulatory ECG recording over a 7-day pad cycle, transmitted to a clinician-reviewable application</td>
+<td>Home and outpatient clinical settings; not for in-patient acute monitoring</td>
+</tr>
+</tbody>
+</table>
+<h2>4. Market and personas</h2>
+<p><strong>Personas:</strong></p>
+<ul>
+<li>[persona-ambulatory-cardiac-patient] <strong>Persona: Ambulatory Cardiac Patient</strong> — Adult patient discharged from cardiology service with continuous-monitoring orders for 7-30 days; mobile, lives at home, manages own pad changes.</li>
+</ul>
+<p><strong>Named customer references:</strong></p>
+<ul>
+<li>[customer-northstar-cardiology-2025] Northstar Cardiology Group (trial customer) — Fictional multi-site cardiology group; first trial customer; running a 14-patient pilot during Q1-Q2 2026.</li>
+</ul>
+<h2>5. Market requirements</h2>
+<ul>
+<li>[requirement-mkt-001-continuous-ecg-during-ambulatory] <strong>Market Requirement: Continuous ECG During Ambulatory Use</strong> — Cardiologists need continuous (not intermittent) ECG capture during the ambulatory window; intermittent recording misses paroxysmal events.</li>
+</ul>
+<h2>6. Competitive landscape</h2>
+<h3>CardioTrace Inc [competitor-cardiotrace-inc]</h3>
+<p>Direct fictional competitor in adult ambulatory cardiac telemetry; two 510(k) clearances with expanding IFU history; competes head-on with Vitalisens.</p>
+<ul>
+<li><strong>Canonical URL:</strong> https://cardiotrace-inc.example.com</li>
+<li><strong>IFU history:</strong> [indication-for-use-cardiotrace-pro-2023-q1], [indication-for-use-cardiotrace-pro-2025-q3]</li>
+<li><strong>Clearances:</strong> [regulatory-clearance-K181234-cardiotrace-pro-v1], [regulatory-clearance-K231234-cardiotrace-pro-v2]</li>
+</ul>
+<h3>PulseGuard Medical [competitor-pulseguard-medical]</h3>
+<p>Adjacent fictional competitor; alternative architecture (in-clinic placement, in-home pad change); one 510(k) clearance frequently used as predicate.</p>
+<ul>
+<li><strong>Canonical URL:</strong> https://pulseguard-medical.example.com</li>
+<li><strong>IFU history:</strong> [indication-for-use-pulseguard-rhythm-2022-q4]</li>
+<li><strong>Clearances:</strong> [regulatory-clearance-K221567-pulseguard-rhythm]</li>
+</ul>
+<h2>7. Regulatory landscape</h2>
+<p><strong>Clearances tracked:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Clearance</th>
+<th>Type</th>
+<th>Applicant</th>
+<th>Device</th>
+<th>Date</th>
+<th>Predicates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[regulatory-clearance-K181234-cardiotrace-pro-v1] <code>K181234</code></td>
+<td>510k</td>
+<td>CardioTrace Inc</td>
+<td>CardioTrace Pro</td>
+<td>2023-02-14</td>
+<td></td>
+</tr>
+<tr>
+<td>[regulatory-clearance-K221567-pulseguard-rhythm] <code>K221567</code></td>
+<td>510k</td>
+<td>PulseGuard Medical Devices LLC</td>
+<td>PulseGuard Rhythm</td>
+<td>2022-11-08</td>
+<td></td>
+</tr>
+<tr>
+<td>[regulatory-clearance-K231234-cardiotrace-pro-v2] <code>K231234</code></td>
+<td>510k</td>
+<td>CardioTrace Inc</td>
+<td>CardioTrace Pro (expanded indication)</td>
+<td>2025-08-30</td>
+<td>[regulatory-clearance-K181234-cardiotrace-pro-v1], [regulatory-clearance-K221567-pulseguard-rhythm]</td>
+</tr>
+<tr>
+<td>[regulatory-clearance-K243189-vitalisens-cardio] <code>K243189</code></td>
+<td>510k</td>
+<td>Vitalisens (fictional)</td>
+<td>Vitalisens Cardio</td>
+<td>2026-12-31</td>
+<td>[regulatory-clearance-K221567-pulseguard-rhythm], [regulatory-clearance-K231234-cardiotrace-pro-v2]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Regulations referenced:</strong></p>
+<ul>
+<li>[regulation-21-cfr-820-design-controls] Regulation: 21 CFR 820 (Quality System Regulation / Design Controls) — US FDA quality system regulation, including design controls subpart C. Vitalisens' controlled-document boundary is informed by this regulation.</li>
+</ul>
+<p><strong>Standards referenced:</strong></p>
+<ul>
+<li>[standard-iso-14971-risk-management] Standard: ISO 14971 (Risk Management) — International standard for risk management of medical devices. Vitalisens uses its vocabulary for planning-level risk thinking; the controlled risk management file would also conform.</li>
+</ul>
+<h2>8. Evidence vs. vision split</h2>
+<p>A breakdown of which claims in this vault are grounded in evidence (customer interviews, market data, internal telemetry, FDA filings, web snapshots, press releases) and which are vision-driven (founder vision, strategic thesis, domain expertise). Both are legitimate; conflating them silently is the failure mode this section prevents.</p>
+<ul>
+<li><strong>Evidence-derived claims:</strong> 7</li>
+<li><strong>Vision-derived claims:</strong> 4</li>
+<li><strong>Uncited claims:</strong> 14 <em>(should be addressed — every load-bearing claim should derive from a source)</em></li>
+</ul>
+<p><strong>Uncited claims to address:</strong></p>
+<ul>
+<li>[decision-001-online-only-documentation] Decision 001: Online-Only Documentation</li>
+<li>[decision-003-7-day-wear-not-14-day] Decision 003: 7-Day Pad Wear Time</li>
+<li>[fact-current-team-size-2026-q2] Fact: Team Size — 2026 Q2</li>
+<li>[fact-pad-attach-rate-2026-q2] Fact: Pad Attach Rate at Day 1 — 2026 Q2 Cohort (interim)</li>
+<li>[fact-stripe-fee-2-9-percent-plus-30c] Fact: Stripe US Card Processing Fee</li>
+<li>[hypothesis-7-day-wear-improves-compliance] Hypothesis: 7-Day Wear Improves Patient Compliance vs. 14-Day</li>
+<li>[hypothesis-rx-only-preserves-reimbursement] Hypothesis: Rx-Only Preserves Reimbursement Coding</li>
+<li>[indication-for-use-pulseguard-rhythm-2022-q4] IFU: PulseGuard Rhythm (2022 Q4)</li>
+<li>[indication-for-use-vitalisens-cardio-2026-q1] IFU: Vitalisens Cardio (planned, 2026 Q1)</li>
+<li>[pillar-no-pediatric-use] Non-Goal: We Do Not Pursue Pediatric Use</li>
+<li>[regulatory-clearance-K181234-cardiotrace-pro-v1] 510(k) K181234 — CardioTrace Pro (original)</li>
+<li>[regulatory-clearance-K221567-pulseguard-rhythm] 510(k) K221567 — PulseGuard Rhythm</li>
+<li>[regulatory-clearance-K243189-vitalisens-cardio] 510(k) K243189 — Vitalisens Cardio (planned)</li>
+<li>[requirement-sys-001-7-day-battery] System Requirement: 7-Day Continuous Battery Life</li>
+</ul>
+<h2>9. Open questions</h2>
+<ul>
+<li>[question-second-pad-formulation-for-sensitive-skin] <strong>Question: Do We Need a Sensitive-Skin Pad Formulation?</strong> — How many trial patients experience irritation severe enough to discontinue, and would a sensitive-skin pad variant address it in a tractable way?</li>
+<li>[question-when-to-pursue-pediatric-clearance] <strong>Question: When to Pursue Pediatric Clearance?</strong> — Under what conditions would Vitalisens flip from the non-pediatric pillar to actively pursuing a pediatric indication?</li>
+</ul>
+<h2>10. What we are explicitly not doing</h2>
+<p><strong>Non-goal pillars</strong> (durable boundaries):</p>
+<h3>Non-Goal: We Do Not Pursue Pediatric Use [pillar-no-pediatric-use]</h3>
+<p>Vitalisens will not pursue indications, labeling, marketing, or clinical claims for pediatric patients (under 18) in v1 or v2 of the product.</p>
+<p><em>Applies when:</em> pediatric, child, children, adolescent, under-18, school-age, infant, neonatal, age-restricted indication, IFU expansion to younger populations</p>
+<h3>Non-Goal: No Physical Documentation [pillar-no-physical-documentation]</h3>
+<p>Vitalisens does not produce printed IFU, printed quick-start cards, printed user manuals, or printed in-box collateral. All documentation is online.</p>
+<p><em>Applies when:</em> documentation, IFU, user manual, quick start, in-box, packaging insert, printed insert, leaflet, instructions for use printing, e-IFU, electronic instructions for use, paper documentation</p>
+<p><strong>Decisions and what they rule out:</strong></p>
+<h3>Decision 001: Online-Only Documentation [decision-001-online-only-documentation]</h3>
+<ul>
+<li><strong>Printed IFU inserts.</strong> The IFU is not printed at any point in the supply chain.</li>
+<li><strong>Printed quick-start cards.</strong> No &quot;getting started&quot; cards ship in the box.</li>
+<li><strong>Printed user manuals.</strong> No paper manuals are distributed.</li>
+<li><strong>Distributor-printed collateral.</strong> Distributors are contractually prohibited from generating their own printed versions of the IFU or user manual.</li>
+<li><strong>PDF-by-email as the documentation distribution channel.</strong> Documentation must live at a stable URL, not be emailed.</li>
+</ul>
+<h3>Decision 002: Prescription-Only, Not Over-the-Counter [decision-002-prescription-only-not-otc]</h3>
+<ul>
+<li><strong>OTC labeling.</strong> Packaging and IFU will explicitly state Rx-only.</li>
+<li><strong>Consumer retail channels.</strong> Vitalisens will not be sold in pharmacies, big-box retail, or DTC consumer e-commerce.</li>
+<li><strong>Consumer-direct marketing claims.</strong> Marketing addresses clinicians (and patients via clinician referral), not general consumers.</li>
+<li><strong>OTC clearance pursuit.</strong> No regulatory effort is allocated to an OTC pathway.</li>
+</ul>
+<h3>Decision 003: 7-Day Pad Wear Time [decision-003-7-day-wear-not-14-day]</h3>
+<ul>
+<li><strong>A 14-day Vitalisens Pad variant in v1.</strong> No engineering work toward 14-day adhesion validation.</li>
+<li><strong>Labeling that implies extended wear.</strong> IFU language will be explicit about the 7-day window.</li>
+<li><strong>Off-label &quot;you can keep it on longer&quot; marketing.</strong> No language that encourages extended wear.</li>
+</ul>
+<h2>11. Sources</h2>
+<p>A bibliography of every source node in this vault, labeled by <code>source_kind</code>. Citations elsewhere in this document point at the node ids listed here.</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Kind</th>
+<th>Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[source-citation-aha-mct-guidelines-2024]</td>
+<td>citation</td>
+<td>Citation: AHA MCT Clinical Guidelines (fictional 2024 edition)</td>
+</tr>
+<tr>
+<td>[source-customer-interview-2026-04-12-nurse-anderson]</td>
+<td>customer-interview</td>
+<td>Customer Interview: Nurse Anderson (Northstar Cardiology, 2026-04-12)</td>
+</tr>
+<tr>
+<td>[source-domain-expertise-saunders-cardiology-2026]</td>
+<td>domain-expertise</td>
+<td>Domain Expertise: Saunders, 20 Years of Cardiology Workflow</td>
+</tr>
+<tr>
+<td>[source-fda-510k-summary-K231234-cardiotrace]</td>
+<td>fda-510k-summary</td>
+<td>FDA 510(k) Summary: K231234 (CardioTrace Pro v2)</td>
+</tr>
+<tr>
+<td>[source-internal-data-q1-2026-pad-attach-rate]</td>
+<td>internal-data</td>
+<td>Internal Data: Q1 2026 Pad Attach Rate Cohort</td>
+</tr>
+<tr>
+<td>[source-market-data-cardiac-monitor-tam-2025]</td>
+<td>market-data</td>
+<td>Market Data: US Ambulatory Cardiac Monitor TAM (fictional 2025 report)</td>
+</tr>
+<tr>
+<td>[source-press-release-cardiotrace-2025-q3-launch]</td>
+<td>press-release</td>
+<td>Press Release: CardioTrace Announces Pro Expanded Clearance (2025 Q3)</td>
+</tr>
+<tr>
+<td>[source-strategic-thesis-disposable-pad-recurring-revenue]</td>
+<td>strategic-thesis</td>
+<td>Strategic Thesis: Disposable Pad as Recurring Revenue Engine</td>
+</tr>
+<tr>
+<td>[source-vision-saunders-2026-cardiac-workflow-thesis]</td>
+<td>founder-vision</td>
+<td>Founder Vision: The Cardiac Workflow Bottleneck (Saunders, 2026)</td>
+</tr>
+<tr>
+<td>[source-web-snapshot-cardiotrace-product-page-2026-05-20]</td>
+<td>web-snapshot</td>
+<td>Web Snapshot: CardioTrace Pro Product Page (2026-05-20)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p>This is a planning artifact. It is not a controlled document and is not part of any design history file, risk management file, or traceability matrix per ISO 14971, IEC 62304, or 21 CFR 820.</p>
+</blockquote>
+<p><em>company-brain v0.3.0 · MRD generated 2026-05-24 from vault at <code>/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/meddev-fictional</code>.</em></p>
+
+</body>
+</html>

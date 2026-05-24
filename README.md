@@ -8,7 +8,7 @@ Built as a set of Claude Code skills plus a Python CLI. Industry-agnostic core w
 
 ## Status
 
-Current milestone: **v0.1.0 — Schema and architect (foundation).** No usable functionality yet; this is the v0.1.0 skeleton.
+Current milestone: **v0.3.0 — Query, MRD, and one-pager.** The pipeline now goes end-to-end: scaffold a vault, capture knowledge via `intake`, ingest existing docs via `atomize`, query the graph via `query`, and generate a real MRD or one-pager via `doc-generate`.
 
 - [PRD.md](PRD.md) — design spec.
 - [ROADMAP.md](ROADMAP.md) — milestone sequencing.
@@ -16,18 +16,19 @@ Current milestone: **v0.1.0 — Schema and architect (foundation).** No usable f
 
 ## What's here today
 
-- Repo skeleton, license, pyproject.toml.
-- Directory structure for skills, CLI, examples, and docs per PRD §6.
-- Stub `cb` CLI that prints a pre-development banner.
-- Empty placeholders for the seven skills (`vault-architect`, `intake`, `atomize`, `query`, `doc-generate`, `maintain`, `visualize`).
+- **Schema** — typed nodes, typed edges, source kinds, industry profiles (medical-device + default).
+- **CLI** — `cb scaffold`, `cb validate`, `cb describe-profile`, `cb describe-node`, `cb extract`, `cb list-nodes`, `cb get-node`, `cb render`, `cb install-skills`.
+- **Skills** — `vault-architect`, `intake` (vision / product / competitor / metric / meeting-notes / risk / clearance sub-modes), `atomize` (markdown / Word / PDF / transcript / image), `query` (IB retrieval analyst), `doc-generate` (MRD + one-pager, profile-aware, markdown / html / docx).
+- **Example vault** — `examples/meddev-fictional/` exercises every node type in the medical-device profile; pre-generated MRD and one-pager live in `exports/`.
+- Placeholders for the two skills that land in v0.4.0 (`maintain`, `visualize`).
 
 ## What's coming
 
 See [ROADMAP.md](ROADMAP.md) for the full milestone list. Highlights:
 
-- **v0.1.0** — schema definitions, `vault-architect` skill, hand-built medical-device example vault, `cb validate`.
-- **v0.2.0** — `intake` (vision + product + competitor sub-modes), `atomize` (markdown / Word / PDF / transcripts / image screenshots).
-- **v0.3.0** — `query` + MRD generator (profile-aware, evidence-vs-vision split, IFU comparison, anti-decisions section).
+- **v0.1.0** — ✅ schema definitions, `vault-architect` skill, hand-built medical-device example vault, `cb validate`.
+- **v0.2.0** — ✅ `intake` (vision + product + competitor sub-modes), `atomize` (markdown / Word / PDF / transcripts / image screenshots).
+- **v0.3.0** — ✅ `query` + MRD generator (profile-aware, evidence-vs-vision split, IFU comparison, anti-decisions section) + one-pager + markdown / html / docx output.
 - **v0.4.0** — `visualize` + `maintain` + scaffold generators for PID, business plan, competitive brief, risk brainstorm.
 - **v1.0.0** — public release tag and announcement.
 
