@@ -251,6 +251,16 @@ def describe_node_command(
         metavar="TYPE",
         help="Node type name (e.g. 'pillar', 'indication-for-use').",
     ),
+    path: Path | None = typer.Option(
+        None,
+        "--path",
+        "-P",
+        help=(
+            "Optional vault path. When provided, emits a stderr warning if the "
+            "node type is not active in the vault's profile. The JSON description "
+            "is still printed (the schema itself is profile-agnostic)."
+        ),
+    ),
 ) -> None:
     """Print a JSON description of a node type, including folder and required fields.
 
@@ -263,6 +273,26 @@ def describe_node_command(
     except UnknownNodeTypeError as exc:
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
+
+    if path is not None:
+        try:
+            profile_data = describe_profile(vault_path=path.resolve())
+        except ProfileLookupError as exc:
+            typer.secho(
+                f"warning: --path provided but vault profile could not be read: {exc}",
+                fg=typer.colors.YELLOW,
+                err=True,
+            )
+        else:
+            active_names = {t.get("name") for t in profile_data.get("active_node_types", [])}
+            if type_name not in active_names:
+                typer.secho(
+                    f"warning: '{type_name}' is not active in profile "
+                    f"'{profile_data.get('profile')}' at {path}.",
+                    fg=typer.colors.YELLOW,
+                    err=True,
+                )
+
     typer.echo(to_json(spec))
 
 
