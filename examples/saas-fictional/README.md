@@ -241,7 +241,7 @@ No flags needed — the render commands automatically pick up overrides when the
 
 ## Idempotency
 
-`cb render` produces byte-identical output for the same vault + pinned `--date`. The generation date lives only in the footer line. This makes git diffs on `exports/` meaningful — you can read the diff to see what *content* changed, not just "the docs got regenerated." (DOCX is the exception: zip-metadata variability means its bytes differ on each render even when the visible content is unchanged.)
+`cb render` produces byte-identical output for the same vault + pinned `--date`, including DOCX. The generation date lives only in the footer line (and in the docx core properties, which are stamped to the same date). This makes git diffs on `exports/` meaningful — you can read the diff to see what *content* changed, not just "the docs got regenerated."
 
 ## Controlled-document boundary
 

@@ -124,14 +124,31 @@ def test_render_mrd_docx_includes_table_data(tmp_path: Path) -> None:
     assert "K231234" in table_text
 
 
-def test_render_mrd_docx_is_idempotent_in_visible_content(tmp_path: Path) -> None:
-    """docx zip bytes vary (zip metadata), but the visible paragraph and
-    table text should be byte-identical across runs with the same date.
+def test_render_mrd_docx_is_byte_identical_on_repeat(tmp_path: Path) -> None:
+    """docx is now byte-deterministic when --date is pinned.
 
-    This is the practical idempotency contract: re-running on an unchanged
-    vault produces an unchanged-content document, even if the zip wrapper's
-    metadata changes.
+    Before this fix only the visible paragraph/table text was equal —
+    the underlying zip bytes varied per run because python-docx stamped
+    each zip entry with the current local time and the docx core
+    properties' `<dcterms:created>` / `<dcterms:modified>` with the
+    wall clock. Both are now normalized so the bytes match the
+    markdown / html idempotency contract.
     """
+
+    a = tmp_path / "a.docx"
+    b = tmp_path / "b.docx"
+    pinned = date(2026, 5, 24)
+    render_mrd(MEDDEV_VAULT, output_path=a, generation_date=pinned, output_format="docx")
+    render_mrd(MEDDEV_VAULT, output_path=b, generation_date=pinned, output_format="docx")
+    assert a.read_bytes() == b.read_bytes()
+
+
+def test_render_mrd_docx_visible_content_equal_too(tmp_path: Path) -> None:
+    """Regression guard: visible paragraph and table content stays
+    equal across runs (the old contract, kept alongside the new
+    byte-equal contract so a hypothetical regression in the
+    normalization step that silently smuggles in content drift would
+    still surface)."""
 
     a = tmp_path / "a.docx"
     b = tmp_path / "b.docx"
@@ -149,6 +166,25 @@ def test_render_mrd_docx_is_idempotent_in_visible_content(tmp_path: Path) -> Non
         return paragraphs, tables
 
     assert extract_text(a) == extract_text(b)
+
+
+def test_render_mrd_docx_core_properties_match_generation_date(
+    tmp_path: Path,
+) -> None:
+    """The visible 'Modified' date in Word lines up with the
+    generation_date — and with the footer the markdown writer already
+    emits — so the docx tells a consistent date story when opened."""
+
+    out = tmp_path / "mrd.docx"
+    pinned = date(2026, 5, 24)
+    render_mrd(MEDDEV_VAULT, output_path=out, generation_date=pinned, output_format="docx")
+    doc = Document(out)
+    assert doc.core_properties.modified.date() == pinned
+    assert doc.core_properties.created.date() == pinned
+    # Author / last_modified_by stable too — would otherwise leak the
+    # local OS user account name.
+    assert doc.core_properties.author == "company-brain"
+    assert doc.core_properties.last_modified_by == "company-brain"
 
 
 # ---------------------------------------------------------------------------

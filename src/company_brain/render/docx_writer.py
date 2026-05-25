@@ -24,6 +24,8 @@ not embedded — docx renders with whatever font the reader has installed).
 from __future__ import annotations
 
 import re
+import zipfile
+from datetime import date, datetime, timezone
 from io import BytesIO
 from pathlib import Path
 
@@ -32,6 +34,16 @@ from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from .engine import Branding
+
+
+# Earliest legal zip timestamp. Used to normalize every entry in the
+# rendered .docx so the bytes are deterministic across runs.
+_EPOCH_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+# Stable values for the docx core properties that python-docx would
+# otherwise fill with the current time / the OS user — both sources of
+# non-determinism in the visible Word "Modified" date and the
+# `<dc:creator>` element.
+_DETERMINISTIC_AUTHOR = "company-brain"
 
 
 _BOLD_PATTERN = re.compile(r"\*\*(.+?)\*\*")
@@ -44,14 +56,26 @@ def render_docx(
     body_markdown: str,
     branding: Branding,
     output_path: Path | None = None,
+    generation_date: date | None = None,
 ) -> bytes:
     """Convert ``body_markdown`` to a branded .docx document.
 
     Returns the document bytes; also writes to ``output_path`` when given.
+
+    Output is **byte-deterministic** when ``generation_date`` is pinned.
+    The docx core properties ``<dcterms:created>`` and
+    ``<dcterms:modified>`` are stamped to ``generation_date`` at midnight
+    UTC; the inner zip is then rewritten with normalized entry order
+    and a fixed (1980-01-01) timestamp per entry. Re-running on the
+    same inputs produces an identical byte string — matching the
+    idempotency contract for the markdown / html outputs.
     """
 
     doc = Document()
     _apply_default_styles(doc, branding)
+    _apply_deterministic_core_properties(
+        doc, generation_date or date.today()
+    )
 
     primary_rgb = _hex_to_rgb(branding.primary)
     secondary_rgb = _hex_to_rgb(branding.secondary)
@@ -102,7 +126,7 @@ def render_docx(
 
     buffer = BytesIO()
     doc.save(buffer)
-    data = buffer.getvalue()
+    data = _normalize_docx_zip(buffer.getvalue())
     if output_path is not None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(data)
@@ -259,6 +283,65 @@ def _strip_family(font_family: str) -> str:
 # ---------------------------------------------------------------------------
 # Misc
 # ---------------------------------------------------------------------------
+
+
+def _apply_deterministic_core_properties(doc, generation_date: date) -> None:
+    """Stamp the docx core properties with deterministic values.
+
+    Without this, python-docx defaults ``<dcterms:created>`` and
+    ``<dcterms:modified>`` to the current wall-clock time on the
+    machine running the render. That makes the bytes vary on every run
+    even when the body content is identical.
+
+    Map ``generation_date`` to midnight UTC so the visible "Modified"
+    date in Word lines up with the footer text the markdown writer
+    already emits, and so the byte sequence inside ``docProps/core.xml``
+    is fully determined by the inputs.
+    """
+
+    pinned = datetime(
+        generation_date.year,
+        generation_date.month,
+        generation_date.day,
+        0,
+        0,
+        0,
+        tzinfo=timezone.utc,
+    )
+    cp = doc.core_properties
+    cp.author = _DETERMINISTIC_AUTHOR
+    cp.last_modified_by = _DETERMINISTIC_AUTHOR
+    cp.created = pinned
+    cp.modified = pinned
+
+
+def _normalize_docx_zip(raw: bytes) -> bytes:
+    """Rewrite a docx zip with deterministic timestamps and entry order.
+
+    A .docx is a zip. Python's zipfile module stamps every entry with
+    the current local time and external_attr derived from the running
+    OS — both vary per run. Re-pack each entry with the (1980-01-01)
+    epoch timestamp, zero external_attr, and a stable name-sorted
+    order. The visible content of each entry is preserved byte-for-byte.
+    """
+
+    in_buf = BytesIO(raw)
+    out_buf = BytesIO()
+    with zipfile.ZipFile(in_buf, "r") as zin:
+        entries = sorted(zin.infolist(), key=lambda info: info.filename)
+        with zipfile.ZipFile(out_buf, "w", zipfile.ZIP_DEFLATED) as zout:
+            for info in entries:
+                data = zin.read(info.filename)
+                new_info = zipfile.ZipInfo(filename=info.filename)
+                new_info.date_time = _EPOCH_ZIP_TIMESTAMP
+                # Reuse the compress type from the source so we don't
+                # accidentally re-compress a stored entry. external_attr
+                # captures unix file mode + DOS attrs; zero it for
+                # cross-platform stability.
+                new_info.compress_type = info.compress_type
+                new_info.external_attr = 0
+                zout.writestr(new_info, data)
+    return out_buf.getvalue()
 
 
 def _hex_to_rgb(hex_color: str) -> RGBColor:

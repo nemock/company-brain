@@ -144,6 +144,7 @@ def render_mrd(
             body_markdown=body_markdown,
             branding=branding,
             output_path=target if write else None,
+            generation_date=generation_date or date.today(),
         )
 
     return RenderResult(

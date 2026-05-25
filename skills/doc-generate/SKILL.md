@@ -140,7 +140,7 @@ The generators read from `<vault>/_branding/`:
 Re-running a generator on an unchanged vault produces **byte-identical output modulo the single generation-date line in the footer**. This is the contract:
 
 - The same vault + the same `--date` flag → identical markdown bytes, identical HTML bytes.
-- DOCX files have inherent zip-metadata variability, but the visible paragraph and table content is identical (the round-trip test asserts this).
+- DOCX files are byte-identical too — the writer normalizes the docx core properties (`<dcterms:created>`, `<dcterms:modified>`, author) to the pinned date / a stable string, and re-packs the underlying zip with deterministic entry order and a fixed (1980-01-01) per-entry timestamp.
 - This is what makes git diffs on `exports/` meaningful — you can tell what *content* changed by reading the diff, not just "the docs regenerated."
 
 If you generate a doc, the user makes some vault changes via `intake`, and you regenerate, the diff in `exports/MRD.md` shows exactly which sections the new nodes affected. That's the whole point.
