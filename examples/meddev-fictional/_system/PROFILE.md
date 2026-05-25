@@ -1,8 +1,8 @@
 ---
 profile: medical-device
 profile_version: 1.0
-scaffolded_at: 2026-05-21
-scaffolded_by_company_brain_version: 0.1.0
+scaffolded_at: 2026-05-25
+scaffolded_by_company_brain_version: 0.5.0
 controlled_document: false
 ---
 

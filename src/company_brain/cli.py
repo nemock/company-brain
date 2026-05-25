@@ -39,6 +39,7 @@ from .maintain import (
     audit as maintain_audit,
     decay as maintain_decay,
     rebuild_index as maintain_rebuild_index,
+    rebuild_readme as maintain_rebuild_readme,
     repair as maintain_repair,
 )
 from .query_helpers import NodeNotFoundError, get_node, list_nodes
@@ -774,6 +775,14 @@ def maintain_repair_command(
         )
     if result.index_rebuilt:
         typer.echo(f"{prefix}INDEX.md regenerated.")
+    if result.readme_status == "rebuilt":
+        typer.echo(f"{prefix}README auto-section refreshed.")
+    elif result.readme_status == "no-markers":
+        typer.secho(
+            f"{prefix}README auto-section: skipped (cb:auto markers not present; "
+            "run `cb scaffold --force` to add them).",
+            fg=typer.colors.YELLOW,
+        )
 
 
 @maintain_app.command("decay")
@@ -890,6 +899,49 @@ def maintain_rebuild_index_command(
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
     typer.echo(f"Regenerated {target}")
+
+
+@maintain_app.command("rebuild-readme")
+def maintain_rebuild_readme_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would change without writing anything.",
+    ),
+) -> None:
+    """Regenerate the auto-section of `<vault>/README.md`.
+
+    The auto-section lives between `<!-- cb:auto START -->` and
+    `<!-- cb:auto END -->` markers. Everything outside the markers is
+    preserved. Errors clearly if the README is missing or has no markers
+    — run `cb scaffold --force` to regenerate the README from the
+    current scaffold template (overwrites hand edits).
+
+    `cb maintain repair` already calls this silently when the markers
+    are present; use this command for an explicit refresh or when
+    diagnosing why the auto-section didn't update.
+    """
+
+    try:
+        result = maintain_rebuild_readme(path.resolve(), strict=True, dry_run=dry_run)
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    except (FileNotFoundError, ValueError) as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    prefix = "(dry-run) " if dry_run else ""
+    if result.status == "rebuilt":
+        typer.echo(f"{prefix}Regenerated auto-section in {result.path}")
+    else:
+        typer.echo(f"{prefix}{result.status}: {result.detail}")
 
 
 @app.command("install-skills")

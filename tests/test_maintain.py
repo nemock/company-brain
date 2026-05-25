@@ -23,9 +23,10 @@ from company_brain.maintain import (
     audit,
     decay,
     rebuild_index,
+    rebuild_readme,
     repair,
 )
-from company_brain.scaffold import scaffold
+from company_brain.scaffold import AUTO_README_END, AUTO_README_START, scaffold
 from company_brain.validator import validate
 from company_brain.vault import VaultNotFoundError, load_vault, split_frontmatter
 
@@ -437,6 +438,118 @@ def test_audit_flags_no_sources_in_empty_vault(tmp_path: Path) -> None:
     codes = {f.code for f in report.findings}
     assert "no-sources" in codes
     assert "no-pillars" in codes
+
+
+# ---------------------------------------------------------------------------
+# rebuild_readme
+# ---------------------------------------------------------------------------
+
+
+def test_rebuild_readme_regenerates_auto_section(cloned_meddev: Path) -> None:
+    result = rebuild_readme(cloned_meddev, strict=True)
+    assert result.status == "rebuilt"
+    readme = (cloned_meddev / "README.md").read_text()
+    assert AUTO_README_START in readme
+    assert AUTO_README_END in readme
+    # Real vault state shows up.
+    assert "**Vault state:**" in readme
+    # Pillars from the meddev vault appear.
+    assert "pillar-icp-ambulatory-cardiac-patients" in readme
+    assert "pillar-no-pediatric-use" in readme
+    # Products and competitors too.
+    assert "product-vitalisens-cardio" in readme
+    assert "competitor-cardiotrace-inc" in readme
+    # Latest-exports section.
+    assert "### Latest exports" in readme
+
+
+def test_rebuild_readme_is_idempotent(cloned_meddev: Path) -> None:
+    rebuild_readme(cloned_meddev, strict=True)
+    first = (cloned_meddev / "README.md").read_bytes()
+    rebuild_readme(cloned_meddev, strict=True)
+    second = (cloned_meddev / "README.md").read_bytes()
+    assert first == second
+
+
+def test_rebuild_readme_preserves_content_outside_markers(cloned_meddev: Path) -> None:
+    readme_path = cloned_meddev / "README.md"
+    text = readme_path.read_text()
+    # Hand-edit a section OUTSIDE the markers.
+    text = text.replace("## Layout", "## Layout (custom hand-edit marker)")
+    # Append something at the very end too.
+    text = text.rstrip() + "\n\n## Custom appendix\n\nThis was added by hand.\n"
+    readme_path.write_text(text, encoding="utf-8")
+
+    rebuild_readme(cloned_meddev, strict=True)
+    after = readme_path.read_text()
+    assert "## Layout (custom hand-edit marker)" in after
+    assert "## Custom appendix" in after
+    assert "This was added by hand." in after
+
+
+def test_rebuild_readme_dry_run_does_not_write(cloned_meddev: Path) -> None:
+    readme_path = cloned_meddev / "README.md"
+    before = readme_path.read_bytes()
+    result = rebuild_readme(cloned_meddev, strict=True, dry_run=True)
+    assert result.status == "skipped-dry-run"
+    assert readme_path.read_bytes() == before
+
+
+def test_rebuild_readme_strict_raises_when_markers_missing(tmp_path: Path) -> None:
+    scaffold(tmp_path / "v", "default", init_git=False)
+    readme_path = tmp_path / "v" / "README.md"
+    # Strip the markers entirely.
+    text = readme_path.read_text()
+    text = text.replace(AUTO_README_START, "").replace(AUTO_README_END, "")
+    readme_path.write_text(text, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="cb:auto markers"):
+        rebuild_readme(tmp_path / "v", strict=True)
+
+
+def test_rebuild_readme_non_strict_returns_no_markers_status(tmp_path: Path) -> None:
+    scaffold(tmp_path / "v", "default", init_git=False)
+    readme_path = tmp_path / "v" / "README.md"
+    text = readme_path.read_text()
+    text = text.replace(AUTO_README_START, "").replace(AUTO_README_END, "")
+    readme_path.write_text(text, encoding="utf-8")
+
+    result = rebuild_readme(tmp_path / "v", strict=False)
+    assert result.status == "no-markers"
+
+
+def test_rebuild_readme_strict_raises_when_no_readme(tmp_path: Path) -> None:
+    scaffold(tmp_path / "v", "default", init_git=False)
+    (tmp_path / "v" / "README.md").unlink()
+    with pytest.raises(FileNotFoundError, match="does not exist"):
+        rebuild_readme(tmp_path / "v", strict=True)
+
+
+def test_rebuild_readme_non_strict_returns_no_readme_status(tmp_path: Path) -> None:
+    scaffold(tmp_path / "v", "default", init_git=False)
+    (tmp_path / "v" / "README.md").unlink()
+    result = rebuild_readme(tmp_path / "v", strict=False)
+    assert result.status == "no-readme"
+
+
+def test_repair_also_refreshes_readme_auto_section(cloned_meddev: Path) -> None:
+    """`cb maintain repair` should regenerate the README auto-section."""
+
+    # Manually scribble inside the markers so we can verify it gets overwritten.
+    readme_path = cloned_meddev / "README.md"
+    text = readme_path.read_text()
+    start = text.find(AUTO_README_START)
+    end = text.find(AUTO_README_END)
+    text = (
+        text[: start + len(AUTO_README_START)]
+        + "\nSCRIBBLE that maintain should overwrite\n"
+        + text[end:]
+    )
+    readme_path.write_text(text, encoding="utf-8")
+
+    result = repair(cloned_meddev, dry_run=False)
+    assert result.readme_status == "rebuilt"
+    assert "SCRIBBLE" not in readme_path.read_text()
 
 
 # ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ This file is rendered from the company-brain schema package; do not edit by hand
 
 | Field | Type | Description |
 |---|---|---|
-| `requirement_class` | string | One of: market, user, system. |
+| `requirement_class` | string | One of: market, user, system, software, hardware. Drives which requirements-doc generator picks the node up. |
 
 ### `metric`
 

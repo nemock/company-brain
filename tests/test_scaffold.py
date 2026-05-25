@@ -129,6 +129,54 @@ def test_meddev_writes_vault_gitignore_and_readme(meddev_vault: VaultScaffoldRes
     assert "controlled-document-boundary" in readme
 
 
+def test_scaffolded_readme_is_comprehensive(meddev_vault: VaultScaffoldResult) -> None:
+    """The scaffold README ships the comprehensive structure with all the
+    headed sections, the cb:auto markers, and the medical-device-only
+    `Inside risk/` subsection under the medical-device profile.
+    """
+
+    readme = (meddev_vault.vault_path / "README.md").read_text()
+    # Auto-section markers are present so cb maintain can refresh in place.
+    assert "<!-- cb:auto START -->" in readme
+    assert "<!-- cb:auto END -->" in readme
+    # Comprehensive sections present.
+    for section_title in (
+        "## What this is",
+        "## Layout",
+        "## Kinds of data in the graph",
+        "### Inside `entities/`",
+        "## The skills",
+        "## The CLI",
+        "## What you can ask the skills to do",
+        "### Capture knowledge (intake)",
+        "### Ingest existing documents (atomize)",
+        "### Query the graph",
+        "### Generate documents (doc-generate)",
+        "### Visualize the graph",
+        "### Maintain the vault",
+        "## Branding the output",
+        "## Idempotency",
+        "## Controlled-document boundary",
+        "## Maintenance",
+    ):
+        assert section_title in readme, f"missing section: {section_title!r}"
+    # Medical-device profile adds the risk subsection.
+    assert "### Inside `risk/`" in readme
+
+
+def test_scaffolded_default_readme_omits_risk_subsection(tmp_path: Path) -> None:
+    """The default profile should NOT include the `Inside risk/` subsection."""
+
+    scaffold(tmp_path / "v", "default", init_git=False)
+    readme = (tmp_path / "v" / "README.md").read_text()
+    assert "<!-- cb:auto START -->" in readme
+    # Same comprehensive shell.
+    assert "## Kinds of data in the graph" in readme
+    assert "## The skills" in readme
+    # But no `risk/` subsection (the default profile excludes risk node types).
+    assert "### Inside `risk/`" not in readme
+
+
 def test_meddev_profile_md_has_expected_frontmatter(meddev_vault: VaultScaffoldResult) -> None:
     profile_md = (meddev_vault.vault_path / "_system" / "PROFILE.md").read_text()
     assert "profile: medical-device" in profile_md

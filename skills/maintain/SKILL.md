@@ -1,6 +1,6 @@
 ---
 name: maintain
-description: Audit and repair a company-brain vault. cb maintain repair auto-fixes filename-id mismatch, missing inverse edges (preceded_by ↔ followed_by), and missing controlled_document:false on risk/IFU nodes. cb maintain decay applies half-life confidence decay to fact snapshots linked to volatile metrics. cb maintain rebuild-index regenerates _system/INDEX.md. cb maintain audit reports vault health read-only. cb validate --fix wires the repair pass into validation.
+description: Audit and repair a company-brain vault. cb maintain repair auto-fixes filename-id mismatch, missing inverse edges (preceded_by ↔ followed_by), and missing controlled_document:false on risk/IFU nodes; it also regenerates _system/INDEX.md and refreshes the auto-section of the vault-level README.md (between cb:auto markers). cb maintain decay applies half-life confidence decay to fact snapshots linked to volatile metrics. cb maintain rebuild-index regenerates _system/INDEX.md only. cb maintain rebuild-readme regenerates the README auto-section only. cb maintain audit reports vault health read-only. cb validate --fix wires the repair pass into validation.
 ---
 
 # maintain
@@ -76,6 +76,19 @@ cb maintain rebuild-index --path <vault>
 ```
 
 The vault's `_system/INDEX.md` is gitignored at the vault level — it's a regenerated artifact, not committed history. Always reflects the current node set.
+
+### README auto-section regeneration (`cb maintain rebuild-readme`)
+
+The vault-level `README.md` has an auto-section bracketed by `<!-- cb:auto START -->` and `<!-- cb:auto END -->` markers. The section shows current vault state: node count, governing pillars (auto-injected), non-goal pillars, products, competitors, and a table of files in `exports/`. Hand edits **inside** the markers are overwritten; everything **outside** is preserved.
+
+```bash
+cb maintain rebuild-readme --path <vault>
+cb maintain rebuild-readme --path <vault> --dry-run
+```
+
+`cb maintain repair` calls this silently and skips cleanly if the markers aren't present (e.g. on an older vault scaffolded before this feature landed). The dedicated `rebuild-readme` command errors loudly with a suggestion to run `cb scaffold --force` if the markers are missing — useful for diagnosing why the auto-section didn't update.
+
+`cb scaffold --force` regenerates the whole README from the current scaffold template, which **overwrites hand edits outside the markers**. Use it for a periodic refresh after a company-brain upgrade; commit first so you can recover the lost hand edits if needed.
 
 ## What this skill does NOT do
 
