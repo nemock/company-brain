@@ -35,6 +35,12 @@ from .intake_helpers import (
     extract_text,
     to_json,
 )
+from .maintain import (
+    audit as maintain_audit,
+    decay as maintain_decay,
+    rebuild_index as maintain_rebuild_index,
+    repair as maintain_repair,
+)
 from .query_helpers import NodeNotFoundError, get_node, list_nodes
 from .render import render_mrd, render_one_pager
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
@@ -194,8 +200,12 @@ def validate_command(
         False,
         "--fix",
         help=(
-            "Auto-fix issues where possible. v0.1.0 stub — full implementation "
-            "lands with the maintain skill in v0.4.0."
+            "Run the maintain skill's auto-repair pass before validating. "
+            "Fixes filename-id mismatch, missing inverse edges, "
+            "missing controlled_document:false on risk/IFU nodes, and "
+            "regenerates _system/INDEX.md. Errors that need human input "
+            "(unknown types, duplicate ids, broken edge targets) are left "
+            "for you to address."
         ),
     ),
 ) -> None:
@@ -209,8 +219,28 @@ def validate_command(
     otherwise the path is not recognized as a vault.
     """
 
+    vault_path = path.resolve()
+
+    if fix:
+        try:
+            repair_result = maintain_repair(vault_path, dry_run=False)
+        except VaultNotFoundError as exc:
+            typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=2) from exc
+        if repair_result.actions or repair_result.index_rebuilt:
+            typer.secho(
+                f"Auto-fix: {len(repair_result.actions)} change(s)"
+                + (", INDEX.md regenerated." if repair_result.index_rebuilt else "."),
+                fg=typer.colors.GREEN,
+            )
+            for action in repair_result.actions:
+                typer.echo(
+                    f"  {action.code}  {action.node_id}  ({action.path}): {action.detail}"
+                )
+            typer.echo("")
+
     try:
-        issues = validate(path.resolve())
+        issues = validate(vault_path)
     except VaultNotFoundError as exc:
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
@@ -240,12 +270,6 @@ def validate_command(
         f"{counts.get('warning', 0)} warning(s), "
         f"{counts.get('info', 0)} info."
     )
-
-    if fix:
-        typer.secho(
-            "  --fix is a stub in v0.1.0; full auto-fix lands in v0.4.0 with the maintain skill.",
-            fg=typer.colors.YELLOW,
-        )
 
     if counts.get("error", 0) > 0:
         raise typer.Exit(code=1)
@@ -569,6 +593,176 @@ def get_node_command(
         raise typer.Exit(code=2) from exc
 
     typer.echo(to_json(data))
+
+
+maintain_app = typer.Typer(
+    name="maintain",
+    help=(
+        "Vault maintenance: auto-repair, confidence decay, INDEX.md "
+        "regeneration, audit. Read+write companion to `cb validate`."
+    ),
+    no_args_is_help=True,
+    add_completion=False,
+)
+app.add_typer(maintain_app, name="maintain")
+
+
+@maintain_app.command("repair")
+def maintain_repair_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would change without writing anything.",
+    ),
+) -> None:
+    """Auto-fix what can be fixed without ambiguity.
+
+    Repairs filename-id mismatch (renames the file to match its id),
+    missing inverse edges (auto-fills `followed_by` when `preceded_by`
+    points the other way), and missing `controlled_document: false` on
+    risk/IFU nodes. Regenerates `_system/INDEX.md`. Idempotent.
+
+    Errors that need human input (unknown types, duplicate ids, broken
+    edge targets, missing required fields) are left alone — run
+    `cb validate` to see them.
+    """
+
+    try:
+        result = maintain_repair(path.resolve(), dry_run=dry_run)
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    prefix = "(dry-run) " if dry_run else ""
+    typer.echo(f"{prefix}{len(result.actions)} repair action(s).")
+    for action in result.actions:
+        typer.echo(
+            f"  {action.code}  {action.node_id}  ({action.path}): {action.detail}"
+        )
+    if result.index_rebuilt:
+        typer.echo(f"{prefix}INDEX.md regenerated.")
+
+
+@maintain_app.command("decay")
+def maintain_decay_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+    today: str | None = typer.Option(
+        None,
+        "--today",
+        help=(
+            "Pin the reference date (YYYY-MM-DD) for decay computation. "
+            "Defaults to the system date."
+        ),
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would change without writing anything.",
+    ),
+) -> None:
+    """Apply confidence decay to fact snapshots linked to volatile metrics.
+
+    Fact nodes with a `metric_id` get their confidence reduced based on
+    age and the metric's `volatility_class`. Half-life by class:
+    low = 24mo, medium = 6mo, high = 1mo. The original confidence is
+    preserved as `confidence_original` so re-runs are idempotent.
+    """
+
+    today_date = None
+    if today is not None:
+        from datetime import date
+
+        try:
+            today_date = date.fromisoformat(today)
+        except ValueError as exc:
+            typer.secho(
+                f"error: --today must be YYYY-MM-DD ({exc})",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=2) from exc
+
+    try:
+        result = maintain_decay(path.resolve(), today=today_date, dry_run=dry_run)
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    prefix = "(dry-run) " if dry_run else ""
+    typer.echo(f"{prefix}{len(result.actions)} decay update(s).")
+    for action in result.actions:
+        typer.echo(
+            f"  {action.node_id}  metric={action.metric_id} "
+            f"({action.volatility_class}, age={action.age_months}mo): "
+            f"{action.confidence_before:.2f} → {action.confidence_after:.2f}"
+        )
+
+
+@maintain_app.command("audit")
+def maintain_audit_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+) -> None:
+    """Read-only health summary: repair candidates, decay candidates, notices."""
+
+    try:
+        report = maintain_audit(path.resolve())
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(f"Repair candidates: {len(report.repair_candidates)}")
+    for action in report.repair_candidates:
+        typer.echo(f"  {action.code}  {action.node_id}: {action.detail}")
+    typer.echo("")
+    typer.echo(f"Decay candidates: {len(report.decay_candidates)}")
+    for action in report.decay_candidates:
+        typer.echo(
+            f"  {action.node_id}  ({action.volatility_class}, "
+            f"age={action.age_months}mo): "
+            f"{action.confidence_before:.2f} → {action.confidence_after:.2f}"
+        )
+    typer.echo("")
+    typer.echo("Findings:")
+    for finding in report.findings:
+        color = (
+            typer.colors.CYAN if finding.severity == "info" else typer.colors.YELLOW
+        )
+        typer.secho(f"  [{finding.severity}] {finding.code}: {finding.message}", fg=color)
+
+
+@maintain_app.command("rebuild-index")
+def maintain_rebuild_index_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+) -> None:
+    """Regenerate `<vault>/_system/INDEX.md` from the current nodes."""
+
+    try:
+        target = maintain_rebuild_index(path.resolve())
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(f"Regenerated {target}")
 
 
 @app.command("install-skills")

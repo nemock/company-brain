@@ -46,3 +46,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Dev scratch notes — atomized state for in-progress work. Local-only,
+# not part of the project's public history. See .dev-notes/INDEX.md.
+.dev-notes/

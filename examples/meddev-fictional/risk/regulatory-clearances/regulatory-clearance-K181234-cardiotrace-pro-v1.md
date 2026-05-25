@@ -1,32 +1,42 @@
 ---
 id: regulatory-clearance-K181234-cardiotrace-pro-v1
-title: "510(k) K181234 — CardioTrace Pro (original)"
+title: 510(k) K181234 — CardioTrace Pro (original)
 type: regulatory-clearance
 namespace: competitive
-summary: "Fictional 510(k) clearance for CardioTrace Pro original device; cleared 2023-02-14; predicate for the 2025 expansion clearance."
+summary: Fictional 510(k) clearance for CardioTrace Pro original device; cleared 2023-02-14;
+  predicate for the 2025 expansion clearance.
 auto_inject: false
 applicable_when: null
 confidence: 0.85
 verified_at: 2026-05-21
 verified_by: nemock
-staleness_signal: "Frozen — historical clearance."
-tags: [510k, clearance, competitor, historical]
+staleness_signal: Frozen — historical clearance.
+tags:
+- 510k
+- clearance
+- competitor
+- historical
 clearance_number: K181234
 clearance_type: 510k
 clearance_date: 2023-02-14
-applicant: "CardioTrace Inc"
-device_name: "CardioTrace Pro"
-product_codes: [DRT]
-summary_url: "https://example.com/fda/cdrh/K181234-summary.pdf"
+applicant: CardioTrace Inc
+device_name: CardioTrace Pro
+product_codes:
+- DRT
+summary_url: https://example.com/fda/cdrh/K181234-summary.pdf
 edges:
-  - target: competitor-cardiotrace-inc
-    type: related_to
-    weight: 0.9
-    note: "Belongs to CardioTrace."
-  - target: indication-for-use-cardiotrace-pro-2023-q1
-    type: related_to
-    weight: 0.95
-    note: "The IFU this clearance authorized."
+- target: competitor-cardiotrace-inc
+  type: related_to
+  weight: 0.9
+  note: Belongs to CardioTrace.
+- target: indication-for-use-cardiotrace-pro-2023-q1
+  type: related_to
+  weight: 0.95
+  note: The IFU this clearance authorized.
+- target: regulatory-clearance-K231234-cardiotrace-pro-v2
+  type: followed_by
+  weight: 0.95
+  note: auto-added inverse of preceded_by from regulatory-clearance-K231234-cardiotrace-pro-v2
 related: []
 source_url: null
 controlled_document: false

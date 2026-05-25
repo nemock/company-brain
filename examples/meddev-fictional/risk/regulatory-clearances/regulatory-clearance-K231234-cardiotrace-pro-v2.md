@@ -1,44 +1,54 @@
 ---
 id: regulatory-clearance-K231234-cardiotrace-pro-v2
-title: "510(k) K231234 — CardioTrace Pro (2025 expansion)"
+title: 510(k) K231234 — CardioTrace Pro (2025 expansion)
 type: regulatory-clearance
 namespace: competitive
-summary: "Fictional 510(k) clearance for CardioTrace Pro expanded indication; cleared 2025-08-30; preceded_by K181234 (original CardioTrace) and K221567 (PulseGuard)."
+summary: Fictional 510(k) clearance for CardioTrace Pro expanded indication; cleared
+  2025-08-30; preceded_by K181234 (original CardioTrace) and K221567 (PulseGuard).
 auto_inject: false
 applicable_when: null
 confidence: 0.85
 verified_at: 2026-05-21
 verified_by: nemock
-staleness_signal: "Refresh if FDA publishes additional context on this filing."
-tags: [510k, clearance, competitor]
+staleness_signal: Refresh if FDA publishes additional context on this filing.
+tags:
+- 510k
+- clearance
+- competitor
 clearance_number: K231234
 clearance_type: 510k
 clearance_date: 2025-08-30
-applicant: "CardioTrace Inc"
-device_name: "CardioTrace Pro (expanded indication)"
-product_codes: [DRT]
-summary_url: "https://example.com/fda/cdrh/K231234-summary.pdf"
+applicant: CardioTrace Inc
+device_name: CardioTrace Pro (expanded indication)
+product_codes:
+- DRT
+summary_url: https://example.com/fda/cdrh/K231234-summary.pdf
 edges:
-  - target: regulatory-clearance-K181234-cardiotrace-pro-v1
-    type: preceded_by
-    weight: 0.95
-    note: "Primary predicate device — CardioTrace's own earlier clearance."
-  - target: regulatory-clearance-K221567-pulseguard-rhythm
-    type: preceded_by
-    weight: 0.8
-    note: "Secondary predicate — PulseGuard's clearance, cited for the expanded wear-time element."
-  - target: competitor-cardiotrace-inc
-    type: related_to
-    weight: 0.9
-    note: "Belongs to CardioTrace."
-  - target: indication-for-use-cardiotrace-pro-2025-q3
-    type: related_to
-    weight: 0.95
-    note: "The expanded IFU this clearance authorized."
-  - target: source-fda-510k-summary-K231234-cardiotrace
-    type: derived_from
-    weight: 0.95
-    note: "Source PDF used to populate this node."
+- target: regulatory-clearance-K181234-cardiotrace-pro-v1
+  type: preceded_by
+  weight: 0.95
+  note: Primary predicate device — CardioTrace's own earlier clearance.
+- target: regulatory-clearance-K221567-pulseguard-rhythm
+  type: preceded_by
+  weight: 0.8
+  note: Secondary predicate — PulseGuard's clearance, cited for the expanded wear-time
+    element.
+- target: competitor-cardiotrace-inc
+  type: related_to
+  weight: 0.9
+  note: Belongs to CardioTrace.
+- target: indication-for-use-cardiotrace-pro-2025-q3
+  type: related_to
+  weight: 0.95
+  note: The expanded IFU this clearance authorized.
+- target: source-fda-510k-summary-K231234-cardiotrace
+  type: derived_from
+  weight: 0.95
+  note: Source PDF used to populate this node.
+- target: regulatory-clearance-K243189-vitalisens-cardio
+  type: followed_by
+  weight: 0.85
+  note: auto-added inverse of preceded_by from regulatory-clearance-K243189-vitalisens-cardio
 related: []
 source_url: null
 controlled_document: false

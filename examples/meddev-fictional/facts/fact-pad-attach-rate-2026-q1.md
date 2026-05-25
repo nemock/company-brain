@@ -1,26 +1,34 @@
 ---
 id: fact-pad-attach-rate-2026-q1
-title: "Fact: Pad Attach Rate at Day 1 — 2026 Q1 Cohort"
+title: 'Fact: Pad Attach Rate at Day 1 — 2026 Q1 Cohort'
 type: fact
 namespace: metrics-snapshots
-summary: "Q1 2026 trial cohort day-1 pad attach rate: 89% (12 of 14 patients with continuous data through hour 24)."
+summary: 'Q1 2026 trial cohort day-1 pad attach rate: 89% (12 of 14 patients with
+  continuous data through hour 24).'
 auto_inject: false
 applicable_when: null
 confidence: 0.95
 verified_at: 2026-05-21
 verified_by: nemock
-staleness_signal: "Q1 cohort snapshot is permanent. Q2 snapshot will be a separate fact node."
-tags: [fact, metric-snapshot]
+staleness_signal: Q1 cohort snapshot is permanent. Q2 snapshot will be a separate
+  fact node.
+tags:
+- fact
+- metric-snapshot
 metric_id: metric-pad-attach-rate-day-1
 edges:
-  - target: metric-pad-attach-rate-day-1
-    type: part_of
-    weight: 1.0
-    note: "Snapshot of this metric."
-  - target: source-internal-data-q1-2026-pad-attach-rate
-    type: derived_from
-    weight: 0.95
-    note: "Data origin."
+- target: metric-pad-attach-rate-day-1
+  type: part_of
+  weight: 1.0
+  note: Snapshot of this metric.
+- target: source-internal-data-q1-2026-pad-attach-rate
+  type: derived_from
+  weight: 0.95
+  note: Data origin.
+- target: fact-pad-attach-rate-2026-q2
+  type: followed_by
+  weight: 0.9
+  note: auto-added inverse of preceded_by from fact-pad-attach-rate-2026-q2
 related: []
 source_url: null
 controlled_document: false
