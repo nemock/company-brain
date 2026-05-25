@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marketing Requirements Document</title>
+  <style>
+    :root {
+      --cb-primary: #7c3aed;
+      --cb-secondary: #0ea5e9;
+      --cb-accent: #22c55e;
+      --cb-text: #111827;
+      --cb-background: #fafafa;
+      --cb-muted: #94a3b8;
+    }
+    html { background: var(--cb-background); color: var(--cb-text); }
+    body {
+      max-width: 820px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      line-height: 1.55;
+    }
+    h1, h2, h3, h4 {
+      font-family: Inter, Helvetica Neue, Arial, sans-serif;
+      color: var(--cb-primary);
+      line-height: 1.25;
+    }
+    h1 { border-bottom: 2px solid var(--cb-primary); padding-bottom: 0.4rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid var(--cb-muted); padding-bottom: 0.2rem; }
+    h3 { margin-top: 1.5rem; color: var(--cb-secondary); }
+    a { color: var(--cb-secondary); }
+    blockquote {
+      border-left: 4px solid var(--cb-accent);
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      background: rgba(0, 0, 0, 0.025);
+      color: var(--cb-text);
+    }
+    code { background: rgba(0, 0, 0, 0.05); padding: 0.1rem 0.3rem; border-radius: 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+    }
+    th, td { border: 1px solid var(--cb-muted); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: var(--cb-primary); color: var(--cb-background); }
+    hr { border: 0; border-top: 1px solid var(--cb-muted); margin: 2rem 0; }
+    footer { margin-top: 2rem; color: var(--cb-muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+<h1>Marketing Requirements Document</h1>
+<blockquote>
+<p>Vault: <code>/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional</code> · Profile: <code>default</code></p>
+</blockquote>
+<h2>1. Executive summary</h2>
+<p>The 3 governing principles of this company shape every section that follows. The product set is anchored on 1 product, positioned against 2 known competitors.</p>
+<p><strong>Top principles:</strong></p>
+<ul>
+<li>[pillar-icp-vpe-scaling-saas] <strong>ICP: VPE at Scaling B2B SaaS (50–250 Engineers)</strong> — Loftwing serves VPs of Engineering and CTOs at B2B SaaS companies between Series A and Series C (roughly 50–250 engineers).</li>
+<li>[pillar-self-serve-over-enterprise-sales] <strong>Self-Serve Setup Over Enterprise Sales Motion</strong> — A new user must be able to connect Loftwing to their stack and see the first dashboard in under 10 minutes, without talking to sales.</li>
+<li>[pillar-team-level-signal] <strong>Team-Level Signal Over Individual-Contributor Metrics</strong> — Every Loftwing metric and dashboard view is scoped to the team or higher; we do not surface or score individual contributors.</li>
+</ul>
+<p><strong>What we are explicitly not doing</strong> (full detail in §10):</p>
+<ul>
+<li>[pillar-no-consumer-market] Non-Goal: No Consumer Market</li>
+<li>[pillar-no-developer-surveillance] Non-Goal: No Developer Surveillance</li>
+</ul>
+<h2>2. Vision and positioning</h2>
+<p>The company's positioning rests on the following pillars:</p>
+<h3>ICP: VPE at Scaling B2B SaaS (50–250 Engineers) [pillar-icp-vpe-scaling-saas]</h3>
+<p>Loftwing serves VPs of Engineering and CTOs at B2B SaaS companies between Series A and Series C (roughly 50–250 engineers).</p>
+<p><em>Applies when:</em> ICP, target market, audience, who we serve, segment, persona, vertical, customer profile, deal size, sales motion</p>
+<h3>Self-Serve Setup Over Enterprise Sales Motion [pillar-self-serve-over-enterprise-sales]</h3>
+<p>A new user must be able to connect Loftwing to their stack and see the first dashboard in under 10 minutes, without talking to sales.</p>
+<p><em>Applies when:</em> pricing, sales motion, onboarding, signup, setup, time-to-value, GTM, PLG, self-serve, enterprise, demo, contact-sales</p>
+<h3>Team-Level Signal Over Individual-Contributor Metrics [pillar-team-level-signal]</h3>
+<p>Every Loftwing metric and dashboard view is scoped to the team or higher; we do not surface or score individual contributors.</p>
+<p><em>Applies when:</em> metrics, dashboards, surveillance, IC, individual, developer, ranking, scoring, performance, productivity, monitoring, observability of people</p>
+<p><strong>Vision sources</strong> (founder-vision, strategic-thesis, domain-expertise):</p>
+<ul>
+<li>[source-domain-expertise-12-years-eng-management] <em>domain-expertise</em> — Domain Expertise: 12 Years of Engineering Management (Founder)</li>
+<li>[source-strategic-thesis-team-level-metrics] <em>strategic-thesis</em> — Strategic Thesis: Team-Level Metrics Over Individual-Contributor Metrics</li>
+<li>[source-vision-loftwing-2026] <em>founder-vision</em> — Founder Vision: Engineering Velocity is a Board-Level Conversation (Loftwing, 2026)</li>
+</ul>
+<h2>3. Market and personas</h2>
+<p><strong>Personas:</strong></p>
+<ul>
+<li>[persona-vpe-scaling-saas] <strong>Persona: VPE at Scaling B2B SaaS</strong> — VP of Engineering at a 50–250-engineer B2B SaaS company. Owns engineering velocity outcomes; answers to a non-technical board quarterly.</li>
+</ul>
+<p><strong>Named customer references:</strong></p>
+<ul>
+<li>[customer-northgate-2026] Northgate (fictional Series-B SaaS, ~80 engineers) — First named customer reference; series-B B2B SaaS at ~80 engineers; on a Team plan; VPE was interviewed 2026-03-11.</li>
+</ul>
+<h2>4. Market requirements</h2>
+<ul>
+<li>[requirement-mkt-001-board-legible-velocity-story] <strong>Market Requirement: Board-Legible Engineering Velocity Story</strong> — The product must let a VPE assemble a one-screen engineering-velocity story that a non-technical board reviewer can read in under 2 minutes.</li>
+</ul>
+<h2>5. Competitive landscape</h2>
+<h3>FlightPath [competitor-flightpath-eng]</h3>
+<p>Direct fictional competitor in engineering analytics; per-seat pricing, recently raised a Series B and moving up-market.</p>
+<ul>
+<li><strong>Canonical URL:</strong> https://flightpath-eng.example.com</li>
+</ul>
+<h3>Tetherline Analytics [competitor-tetherline-analytics]</h3>
+<p>Adjacent fictional competitor; positioned for the Fortune 500 enterprise engineering analytics market with a $200k+ annual minimum contract.</p>
+<ul>
+<li><strong>Canonical URL:</strong> https://tetherline.example.com</li>
+</ul>
+<h2>6. Evidence vs. vision split</h2>
+<p>A breakdown of which claims in this vault are grounded in evidence (customer interviews, market data, internal telemetry, FDA filings, web snapshots, press releases) and which are vision-driven (founder vision, strategic thesis, domain expertise). Both are legitimate; conflating them silently is the failure mode this section prevents.</p>
+<ul>
+<li><strong>Evidence-derived claims:</strong> 6</li>
+<li><strong>Vision-derived claims:</strong> 4</li>
+<li><strong>Uncited claims:</strong> 8 <em>(should be addressed — every load-bearing claim should derive from a source)</em></li>
+</ul>
+<p><strong>Uncited claims to address:</strong></p>
+<ul>
+<li>[fact-team-size-2026-q2] Fact: Loftwing Team Size — 2026 Q2</li>
+<li>[fact-weekly-active-teams-2026-w14] Fact: Weekly Active Teams — 2026 Week 14</li>
+<li>[hypothesis-dashboard-url-shared-in-slack-predicts-retention] Hypothesis: Dashboard URL Shared in Slack Within 7 Days Predicts 90-Day Retention</li>
+<li>[hypothesis-self-serve-under-10-min-converts-25pct] Hypothesis: Self-Serve Under 10 Minutes Converts at 25%+</li>
+<li>[requirement-mkt-001-board-legible-velocity-story] Market Requirement: Board-Legible Engineering Velocity Story</li>
+<li>[requirement-sw-001-oauth-for-integrations] Software Requirement: OAuth for All Third-Party Integrations</li>
+<li>[requirement-sys-001-three-source-aggregation] System Requirement: Three-Source Aggregation</li>
+<li>[requirement-user-001-self-serve-integration-setup] User Requirement: Self-Serve Integration Setup</li>
+</ul>
+<h2>7. Open questions</h2>
+<ul>
+<li>[question-add-team-health-sentiment-input] <strong>Question: Add a Team-Health Sentiment Input?</strong> — Should Loftwing accept a weekly team-health sentiment input (e.g., a single-emoji pulse from each team's lead) and surface it alongside the velocity metrics?</li>
+<li>[question-when-to-add-gitlab-support] <strong>Question: When to Add GitLab Support?</strong> — Under what conditions should Loftwing add GitLab support, given v1 ships GitHub-only per decision-002?</li>
+</ul>
+<h2>8. What we are explicitly not doing</h2>
+<p><strong>Non-goal pillars</strong> (durable boundaries):</p>
+<h3>Non-Goal: No Consumer Market [pillar-no-consumer-market]</h3>
+<p>Loftwing is and remains a B2B SaaS product sold to companies. We do not sell to individual developers, indie hackers, or consumers.</p>
+<p><em>Applies when:</em> consumer, B2C, individual developer, indie, freelancer, hobbyist, personal use, side project, retail, app store</p>
+<h3>Non-Goal: No Developer Surveillance [pillar-no-developer-surveillance]</h3>
+<p>Loftwing will never ship features that score, rank, or surveil individual contributors. The smallest unit of analysis we expose is the team.</p>
+<p><em>Applies when:</em> individual, IC, surveillance, scoring, ranking, developer monitoring, productivity score, performance review, leaderboard, contribution metrics, code metrics per person</p>
+<p><strong>Decisions and what they rule out:</strong></p>
+<h3>Decision 001: PLG-First, Not Enterprise Sales [decision-001-plg-first-not-enterprise]</h3>
+<ul>
+<li><strong>Hiring AEs / BDRs in v1.</strong> No outbound sales motion. No SDR org.</li>
+<li><strong>Forced demos before signup.</strong> Trial signup is one click away from the homepage.</li>
+<li><strong>Six-figure annual contracts.</strong> Pricing tops out below the procurement-required threshold (see <a href="decision-003-workspace-pricing-not-seat-based.md">decision-003</a>).</li>
+<li><strong>Custom enterprise contract language.</strong> We sign self-serve SaaS terms only in v1.</li>
+</ul>
+<h3>Decision 002: Three Integrations Only in v1 (GitHub, Linear, Jira) [decision-002-three-integrations-only-in-v1]</h3>
+<ul>
+<li><strong>GitLab support in v1.</strong> GitLab users see a &quot;coming in v2&quot; message at signup.</li>
+<li><strong>Bitbucket support in v1.</strong> Same.</li>
+<li><strong>Azure DevOps support in v1.</strong> Same.</li>
+<li><strong>Pivotal Tracker, Asana, Shortcut, ClickUp.</strong> Not in v1.</li>
+<li><strong>Generic webhook intake.</strong> Not in v1.</li>
+<li><strong>Customer-built integrations against our API.</strong> API doesn't ship to customers in v1.</li>
+</ul>
+<h3>Decision 003: Workspace-Based Pricing, Not Per-Seat [decision-003-workspace-pricing-not-seat-based]</h3>
+<ul>
+<li><strong>Per-seat pricing.</strong> Not in v1 or v2.</li>
+<li><strong>Per-active-user pricing.</strong> Not in v1 or v2.</li>
+<li><strong>Unlimited-developer tier.</strong> No tier above 250 developers in v1; that is the natural top of our ICP band.</li>
+<li><strong>Custom-priced enterprise contracts.</strong> Customers above 250 developers are out of ICP. We say no.</li>
+</ul>
+<h2>9. Sources</h2>
+<p>A bibliography of every source node in this vault, labeled by <code>source_kind</code>. Citations elsewhere in this document point at the node ids listed here.</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Kind</th>
+<th>Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[source-citation-accelerate-book]</td>
+<td>citation</td>
+<td>Citation: Accelerate (Forsgren, Humble, Kim)</td>
+</tr>
+<tr>
+<td>[source-customer-interview-2026-03-vpe-northgate]</td>
+<td>customer-interview</td>
+<td>Customer Interview: VPE at Northgate (2026-03-11)</td>
+</tr>
+<tr>
+<td>[source-domain-expertise-12-years-eng-management]</td>
+<td>domain-expertise</td>
+<td>Domain Expertise: 12 Years of Engineering Management (Founder)</td>
+</tr>
+<tr>
+<td>[source-internal-data-q1-2026-trial-cohort]</td>
+<td>internal-data</td>
+<td>Internal Data: Q1 2026 Trial Cohort</td>
+</tr>
+<tr>
+<td>[source-market-data-dora-2025]</td>
+<td>market-data</td>
+<td>Market Data: Accelerate State of DevOps Report 2025 (fictional)</td>
+</tr>
+<tr>
+<td>[source-press-release-flightpath-2026-q1-series-b]</td>
+<td>press-release</td>
+<td>Press Release: FlightPath Closes $40M Series B (2026-Q1)</td>
+</tr>
+<tr>
+<td>[source-strategic-thesis-team-level-metrics]</td>
+<td>strategic-thesis</td>
+<td>Strategic Thesis: Team-Level Metrics Over Individual-Contributor Metrics</td>
+</tr>
+<tr>
+<td>[source-vision-loftwing-2026]</td>
+<td>founder-vision</td>
+<td>Founder Vision: Engineering Velocity is a Board-Level Conversation (Loftwing, 2026)</td>
+</tr>
+<tr>
+<td>[source-web-snapshot-flightpath-pricing-2026-04-15]</td>
+<td>web-snapshot</td>
+<td>Web Snapshot: FlightPath Pricing Page (2026-04-15)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>company-brain v0.4.0 · MRD generated 2026-05-25 from vault at <code>/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional</code>.</em></p>
+
+</body>
+</html>

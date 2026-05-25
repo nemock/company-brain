@@ -1,0 +1,15 @@
+# Fictional Loftwing brand palette.
+# All values are invented; this is an example for company-brain.
+# In a real vault, edit these to match your company's brand. Consumed by
+# jinja2 templates in src/company_brain/templates/.
+
+primary: "#7c3aed"        # violet — Loftwing's "altitude" accent
+secondary: "#0ea5e9"      # sky blue
+accent: "#22c55e"         # signal-strength green
+text: "#111827"
+background: "#fafafa"
+muted: "#94a3b8"
+
+# Typography
+font_family_headings: "Inter, Helvetica Neue, Arial, sans-serif"
+font_family_body: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
