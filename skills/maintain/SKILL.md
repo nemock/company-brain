@@ -89,7 +89,7 @@ cb maintain rebuild-readme --path <vault> --dry-run
 `cb maintain repair` calls this silently and skips cleanly if the markers aren't present (e.g. on an older vault scaffolded before this feature landed). The dedicated `rebuild-readme` command errors loudly if the markers are missing, with two remediations:
 
 - **`cb maintain init-readme-markers`** — non-destructive. Inserts the marker pair (with a stub line between them) into the existing README at a sensible default location (between the first and second `##` heading). All hand edits are preserved. This is the right path for upgrading a vault scaffolded before the comprehensive README landed.
-- **`cb scaffold --force`** — destructive. Regenerates the whole README from the current scaffold template; **hand edits outside the markers are overwritten**. Use it for a periodic full refresh after a company-brain upgrade; commit first so the prior README is recoverable from git.
+- **`cb scaffold --force`** — once markers are present, this is also non-destructive for the README. It performs an in-place splice: the auto-block is refreshed from current vault state, everything outside the markers stays byte-identical to your hand-curated content. (On a legacy README without markers, `--force` still does a full overwrite — nothing to splice against.)
 
 ### Inserting cb:auto markers into an older README (`cb maintain init-readme-markers`)
 
@@ -115,7 +115,9 @@ Prepends a fresh managed block at the top of the existing file. The entire prior
 
 ### `cb scaffold --force` and `--reset-branding`
 
-`cb scaffold --force` on an existing vault now refreshes only the things the user shouldn't be customizing: the `_system/*.md` schema reference docs and the vault `README.md`. It explicitly leaves alone:
+`cb scaffold --force` on an existing vault refreshes only what the user shouldn't be customizing. With the marker conventions in place, it's safe to re-run on every company-brain upgrade — `_system/*.md` get refreshed (schema reference docs), the README auto-block gets refreshed to current vault state via in-place splice, and the `.gitignore` managed block gets refreshed.
+
+It explicitly leaves alone:
 
 - `_branding/colors.yaml` and `_branding/README.md` — these are user-customized brand assets. Pass `--reset-branding` together with `--force` to overwrite them back to the scaffold defaults.
 - User-added rules in `.gitignore` outside the cb:gitignore-managed markers.

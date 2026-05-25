@@ -196,9 +196,16 @@ def scaffold(
     # place, preserving user-added rules outside the markers. Legacy
     # vaults without markers are preserved as-is.
     _write_gitignore(vault_path / ".gitignore", force=force, result=result)
-    _write_or_skip(
+    # README is also marker-aware: when --force runs against an existing
+    # README that has the cb:auto markers, we splice just the auto-block
+    # in place and preserve everything outside. Full overwrite only
+    # happens when there's no existing README, or when the existing one
+    # has no markers (legacy path — the user has nothing to lose).
+    _write_vault_readme(
         vault_path / "README.md",
-        _render_vault_readme(profile, today),
+        profile=profile,
+        today=today,
+        vault_path=vault_path,
         force=force,
         result=result,
     )
@@ -298,6 +305,66 @@ def _write_gitignore(
     # clobbering hand-added rules. The user can opt-in via
     # `cb maintain init-gitignore-markers` to migrate.
     result.files_skipped.append(path)
+
+
+def _write_vault_readme(
+    path: Path,
+    *,
+    profile: Profile,
+    today: date,
+    vault_path: Path,
+    force: bool,
+    result: VaultScaffoldResult,
+) -> None:
+    """Write the vault README, splicing in place when markers are present.
+
+    Three cases (mirroring `_write_gitignore`):
+
+    1. **No existing README** — write the full scaffold template (which
+       includes the cb:auto markers wrapping an empty-vault stub).
+    2. **Existing README WITH cb:auto markers** — `--force` triggers an
+       in-place splice: regenerate just the auto-block from the current
+       vault state and leave everything outside the markers exactly as
+       it is. This preserves hand-curated narrative (intro paragraphs,
+       custom sections, footers, etc.) across `cb scaffold --force`
+       runs. Lazy-imports ``maintain.rebuild_readme`` to avoid a
+       module-level cycle.
+    3. **Existing README WITHOUT cb:auto markers** — legacy. Falls back
+       to the v0.5.0 behavior: skip without `--force`, overwrite with
+       `--force`. Hand edits are lost in the overwrite case, but the
+       user has implicitly signed up for that by not having markers.
+       (They can run `cb maintain init-readme-markers` first to opt
+       into the splice path.)
+    """
+
+    if not path.exists():
+        path.write_text(_render_vault_readme(profile, today), encoding="utf-8")
+        result.files_written.append(path)
+        return
+
+    if not force:
+        result.files_skipped.append(path)
+        return
+
+    existing = path.read_text(encoding="utf-8")
+    if AUTO_README_START in existing and AUTO_README_END in existing:
+        # Marker-aware splice: refresh the auto-block from current vault
+        # state, preserve everything outside the markers. Lazy import to
+        # avoid the maintain → scaffold module-level cycle.
+        from .maintain import rebuild_readme
+
+        outcome = rebuild_readme(vault_path, strict=False, dry_run=False)
+        if outcome.status == "rebuilt":
+            result.files_written.append(path)
+        # status == "no-readme" / "no-markers" / "skipped-dry-run" all
+        # leave the file alone; treat as skipped for consistency.
+        else:
+            result.files_skipped.append(path)
+        return
+
+    # Legacy: no markers. Overwrite (preserves the v0.5.0 behavior).
+    path.write_text(_render_vault_readme(profile, today), encoding="utf-8")
+    result.files_written.append(path)
 
 
 def _splice_gitignore_managed_block(existing: str) -> str:

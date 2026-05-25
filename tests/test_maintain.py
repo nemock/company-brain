@@ -746,6 +746,70 @@ def test_init_gitignore_markers_dry_run_does_not_write(tmp_path: Path) -> None:
     assert (vault / ".gitignore").read_bytes() == before
 
 
+def test_rebuild_readme_exports_table_excludes_helpers_and_viewer(
+    tmp_path: Path,
+) -> None:
+    """The Latest exports table drops helper files, dotfiles, the
+    vault-graph viewer output, and non-doc extensions. Real generated
+    docs are kept."""
+
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+    # Add a node so the auto-section reaches the exports table
+    # (the empty-vault branch returns before it).
+    (vault / "pillars" / "pillar-test.md").write_text(
+        """---
+id: pillar-test
+title: "Test"
+type: pillar
+namespace: test
+summary: "Test."
+auto_inject: false
+applicable_when: null
+confidence: 0.8
+verified_at: 2026-01-01
+verified_by: tester
+staleness_signal: null
+tags: []
+edges: []
+related: []
+source_url: null
+controlled_document: false
+---
+
+# Test
+""",
+        encoding="utf-8",
+    )
+    exports = vault / "exports"
+    exports.mkdir(exist_ok=True)
+    # Real generated docs — should appear.
+    (exports / "MRD.md").write_text("# MRD\n", encoding="utf-8")
+    (exports / "one-pager.html").write_text("<html></html>", encoding="utf-8")
+    # Helpers and friends — should NOT appear.
+    (exports / "_build_vault_graph.py").write_text("import os\n", encoding="utf-8")
+    (exports / ".DS_Store").write_bytes(b"\x00")
+    (exports / "vault-graph.html").write_text("<html></html>", encoding="utf-8")
+    (exports / "scratch-notes.txt").write_text("notes\n", encoding="utf-8")
+
+    rebuild_readme(vault, strict=True)
+    readme = (vault / "README.md").read_text()
+    # Scope checks to the auto-block — the descriptive prose elsewhere
+    # in the README mentions some of the same words.
+    inner = readme[
+        readme.index(AUTO_README_START) : readme.index(AUTO_README_END)
+    ]
+    assert "exports/MRD.md" in inner
+    assert "exports/one-pager.html" in inner
+    # Helpers excluded from the exports table.
+    assert "_build_vault_graph.py" not in inner
+    assert ".DS_Store" not in inner
+    # Viewer convention excluded.
+    assert "exports/vault-graph.html" not in inner
+    # Non-doc extension excluded.
+    assert "scratch-notes.txt" not in inner
+
+
 def test_repair_also_refreshes_readme_auto_section(cloned_meddev: Path) -> None:
     """`cb maintain repair` should regenerate the README auto-section."""
 

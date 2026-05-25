@@ -401,6 +401,116 @@ def test_force_preserves_user_rules_outside_gitignore_markers(tmp_path: Path) ->
     assert GITIGNORE_MANAGED_END in after
 
 
+def test_force_on_readme_with_markers_preserves_outside_content(
+    tmp_path: Path,
+) -> None:
+    """The field-report fix: when `--force` runs against a README with
+    cb:auto markers, hand-curated content OUTSIDE the markers must
+    survive verbatim. The auto-block inside gets refreshed."""
+
+    from company_brain.scaffold import AUTO_README_END, AUTO_README_START
+
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+
+    # Hand-curate the README — append a custom section after the auto-block.
+    readme_path = vault / "README.md"
+    text = readme_path.read_text()
+    end_marker_idx = text.index(AUTO_README_END) + len(AUTO_README_END)
+    custom = (
+        "\n\n## Hand-curated section\n\n"
+        "This must survive `cb scaffold --force`.\n"
+        "Multi-paragraph content with specific phrases.\n"
+    )
+    text = text[:end_marker_idx] + custom + text[end_marker_idx:]
+    # Also hand-edit something BEFORE the markers (the intro paragraph).
+    text = text.replace(
+        "An AI-native knowledge graph of a company",
+        "OUR-CUSTOM-INTRO — An AI-native knowledge graph of a company",
+    )
+    readme_path.write_text(text, encoding="utf-8")
+
+    # Run scaffold --force. The legacy behavior was a full overwrite.
+    scaffold(vault, "default", init_git=False, force=True)
+    after = readme_path.read_text()
+
+    # Hand edits outside the markers survive.
+    assert "OUR-CUSTOM-INTRO" in after
+    assert "## Hand-curated section" in after
+    assert "This must survive `cb scaffold --force`." in after
+    # And the markers are still present (the auto-block was refreshed in place).
+    assert AUTO_README_START in after
+    assert AUTO_README_END in after
+
+
+def test_force_on_legacy_readme_without_markers_overwrites(
+    tmp_path: Path,
+) -> None:
+    """Legacy path: a README without cb:auto markers still gets a full
+    overwrite on --force (no markers = nothing to preserve)."""
+
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+    # Strip markers entirely to simulate a pre-0.6 README.
+    readme_path = vault / "README.md"
+    legacy = "# Pre-marker README\n\nThis used to be here.\n"
+    readme_path.write_text(legacy, encoding="utf-8")
+
+    scaffold(vault, "default", init_git=False, force=True)
+    after = readme_path.read_text()
+    # Legacy content is gone; new scaffold template took over.
+    assert "Pre-marker README" not in after
+    assert "## What this is" in after
+
+
+def test_force_on_populated_vault_readme_refreshes_auto_section(
+    tmp_path: Path,
+) -> None:
+    """When --force runs on a populated vault with markers, the
+    auto-block should reflect current vault state (not get reset to
+    the empty-vault stub). Friction point #3 from the field report."""
+
+    from company_brain.scaffold import AUTO_README_END, AUTO_README_START
+
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+    # Add a pillar so the vault is non-empty.
+    pillar = vault / "pillars" / "pillar-test.md"
+    pillar.write_text(
+        """---
+id: pillar-test
+title: "Test Pillar That Auto-Injects"
+type: pillar
+namespace: test
+summary: "A pillar so the auto-section has something to show."
+auto_inject: true
+applicable_when: "test"
+confidence: 0.9
+verified_at: 2026-01-01
+verified_by: tester
+staleness_signal: null
+tags: []
+edges: []
+related: []
+source_url: null
+controlled_document: false
+---
+
+# Test
+""",
+        encoding="utf-8",
+    )
+
+    scaffold(vault, "default", init_git=False, force=True)
+    readme = (vault / "README.md").read_text()
+    # The auto-block reflects the populated state, not the empty-vault stub.
+    start = readme.index(AUTO_README_START)
+    end = readme.index(AUTO_README_END)
+    inner = readme[start:end]
+    assert "0 nodes" not in inner
+    assert "Test Pillar That Auto-Injects" in inner
+
+
 def test_force_on_legacy_gitignore_without_markers_preserves_it(
     tmp_path: Path,
 ) -> None:

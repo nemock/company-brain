@@ -758,10 +758,15 @@ def _render_readme_auto_section(vault: Vault, vault_path: Path) -> str:
     # Latest exports table (sorted by filename for determinism; mtime
     # would make the README churn on every render even when content was
     # unchanged, which would defeat the idempotency contract elsewhere).
+    # Filtering: include only files that look like generated documents
+    # (known doc extensions), skip helpers (underscore- and dot-prefixed
+    # names), and skip the visualizer output convention `vault-graph*`
+    # — that one belongs at the vault root, not in exports/, and even
+    # when copied here it's not a "doc" for this table's purpose.
     exports_dir = vault_path / "exports"
     if exports_dir.is_dir():
         files = sorted(
-            p for p in exports_dir.iterdir() if p.is_file() and not p.name.startswith(".")
+            p for p in exports_dir.iterdir() if _is_listable_export(p)
         )
         if files:
             lines.append("### Latest exports")
@@ -775,6 +780,32 @@ def _render_readme_auto_section(vault: Vault, vault_path: Path) -> str:
             lines.append("")
 
     return "\n".join(lines) + "\n"
+
+
+# Extensions we count as "generated documents" for the README exports table.
+# `cb render` writes .md / .html / .docx today; .pdf / .xlsx / .csv are
+# anticipated outputs for v1.x scaffolds.
+_LISTABLE_EXPORT_EXTENSIONS = frozenset(
+    {".md", ".html", ".docx", ".pdf", ".xlsx", ".csv"}
+)
+
+
+def _is_listable_export(path: Path) -> bool:
+    """True if ``path`` should appear in the README "Latest exports" table."""
+
+    if not path.is_file():
+        return False
+    name = path.name
+    # Helpers (e.g. `_build_vault_graph.py`) and dotfiles.
+    if name.startswith("_") or name.startswith("."):
+        return False
+    # The visualizer convention. `cb viewer` writes to <vault>/vault-graph.html;
+    # if a copy ends up under exports/ we don't want it crowding the doc list.
+    if name.startswith("vault-graph"):
+        return False
+    if path.suffix.lower() not in _LISTABLE_EXPORT_EXTENSIONS:
+        return False
+    return True
 
 
 def _is_non_goal_pillar(node: Node) -> bool:
