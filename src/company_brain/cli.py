@@ -52,6 +52,7 @@ from .render import (
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
 from .schema import PROFILE_SPECS
 from .validator import VaultNotFoundError, summarize, validate
+from .viewer import VIEW_MODES, ViewerProfileError, render_viewer
 
 app = typer.Typer(
     name="cb",
@@ -563,6 +564,74 @@ def render_command(
     typer.echo(f"Rendered {doc} ({output_format}) → {result.output_path}")
     typer.echo(f"  template:  {result.template_name}")
     typer.echo(f"  bytes:     {size}")
+
+
+@app.command("viewer")
+def viewer_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+    out: Path | None = typer.Option(
+        None,
+        "--out",
+        "-o",
+        help="Output path. Defaults to <vault>/vault-graph.html.",
+    ),
+    mode: str = typer.Option(
+        "graph",
+        "--mode",
+        "-m",
+        help=(
+            f"View mode. One of: {', '.join(VIEW_MODES)}. "
+            "`ifu-chain` and `predicate-tree` require the medical-device profile."
+        ),
+    ),
+) -> None:
+    """Render a D3-based interactive HTML viewer for the vault.
+
+    Single self-contained HTML file. Opens in any browser, no server
+    required. D3 loaded from CDN; the vault data is embedded as a JSON
+    island so the file works offline once D3 has loaded once.
+
+    Three view modes:
+
+    * `graph` (default) — every node, every edge. Color by node type.
+    * `ifu-chain` — only indication-for-use nodes, connected via
+      preceded_by / followed_by. Medical-device profile only.
+    * `predicate-tree` — only regulatory-clearance nodes, connected via
+      preceded_by. Medical-device profile only.
+    """
+
+    if mode not in VIEW_MODES:
+        typer.secho(
+            f"error: unknown mode '{mode}'. One of: {', '.join(VIEW_MODES)}.",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        result = render_viewer(
+            path.resolve(),
+            output_path=out.resolve() if out is not None else None,
+            mode=mode,
+            write=True,
+        )
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    except ViewerProfileError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    assert result.output_path is not None
+    typer.echo(f"Rendered viewer ({mode}) → {result.output_path}")
+    typer.echo(f"  nodes:  {result.node_count}")
+    typer.echo(f"  links:  {result.link_count}")
+    typer.echo(f"  bytes:  {len(result.content.encode('utf-8'))}")
 
 
 @app.command("list-nodes")

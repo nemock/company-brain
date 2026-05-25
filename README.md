@@ -8,7 +8,7 @@ Built as a set of Claude Code skills plus a Python CLI (`cb`). Industry-agnostic
 
 ## Status
 
-Current milestone: **v0.4.0 — Visualize, maintain, and the 19 doc scaffolds** (in progress; `maintain` and scaffolds done; `visualize` next). The pipeline goes end-to-end: scaffold a vault, capture knowledge via `intake`, ingest existing docs via `atomize`, query the graph via `query`, generate any of 21 doc types via `doc-generate`, and keep the vault healthy via `maintain`.
+Current milestone: **v0.4.0 — Visualize, maintain, and the 19 doc scaffolds.** ✅ shipped. The pipeline goes end-to-end: scaffold a vault, capture knowledge via `intake`, ingest existing docs via `atomize`, query the graph via `query`, generate any of 21 doc types via `doc-generate`, keep the vault healthy via `maintain`, and explore the graph visually via `visualize`.
 
 - [PRD.md](PRD.md) — full design spec.
 - [ROADMAP.md](ROADMAP.md) — milestone sequencing.
@@ -40,7 +40,7 @@ cb install-skills --source .
 | [`query`](skills/query/SKILL.md) | Answer questions against the graph. Auto-injects pillars, walks typed edges, cites node ids, flags vision-vs-evidence and staleness. |
 | [`doc-generate`](skills/doc-generate/SKILL.md) | Render planning documents from the graph. **21 generators**: full MRD (md / html / docx), full one-pager (md / html), plus 19 scaffolds (PID, project charter, stakeholder register, risk register, status report, meeting minutes, lessons learned, business plan, sales battle card, competitive brief, IFU comparison, decision log, press release, investor update, onboarding doc, SRD, SRS, HRS, risk brainstorm). |
 | [`maintain`](skills/maintain/SKILL.md) | Audit and repair the vault. `cb maintain repair` (auto-fix filename-id, missing inverse edges, controlled_document flag; regen INDEX.md). `cb maintain decay` (half-life confidence decay on fact snapshots). `cb maintain audit` (read-only health summary). `cb validate --fix` wires the same repair pass. |
-| `visualize` | _Placeholder, lands v0.4.0 step 3._ D3 HTML viewer with IFU-chain and predicate-tree views. |
+| [`visualize`](skills/visualize/SKILL.md) | D3 interactive HTML viewer. Single self-contained file. View modes: `graph` (force-directed, color by type), `ifu-chain` (medical-device), `predicate-tree` (medical-device). |
 
 ## The CLI
 
@@ -56,6 +56,7 @@ cb list-nodes      [filters]                 # JSON summary of nodes (for query)
 cb get-node        <id>                      # JSON node + inbound/outbound edges
 cb render          <doc>  [--format ...]     # 21 doc types — MRD, one-pager, 19 scaffolds
 cb maintain        <subcommand>              # repair | decay | audit | rebuild-index
+cb viewer          [--mode ...]              # D3 HTML graph viewer
 cb install-skills                            # symlink skills into ~/.claude/skills
 ```
 
@@ -223,6 +224,23 @@ cb render risk-brainstorm
 
 Each scaffold is a runnable Jinja2 template that queries the right typed nodes, fills in what it can, and flags the output as a scaffold in the footer for adopters to complete. Sections with no inputs degrade gracefully to bracketed placeholders that name the right `intake` sub-mode. Markdown and HTML are both supported; docx / xlsx ship per-doc with the v1.x full implementations.
 
+### Visualize the graph
+
+> Generate a D3 HTML viewer for this vault.
+
+> Show me an IFU-chain view of the medical-device vault.
+
+> Show me the 510(k) predicate tree.
+
+```bash
+cb viewer                                           # → <vault>/vault-graph.html
+cb viewer --mode ifu-chain                          # medical-device only
+cb viewer --mode predicate-tree                     # medical-device only
+cb viewer --out exports/landscape-2026-q2.html      # snapshot for committing/sharing
+```
+
+Single self-contained HTML file. D3 v7 from CDN; the vault data is embedded as a JSON island. Hover for tooltip, click a node to highlight its neighbors and see frontmatter detail in the side panel, drag to reposition, scroll to zoom.
+
 ### Maintain the vault
 
 > Audit this vault — what needs fixing?
@@ -292,7 +310,7 @@ See [ROADMAP.md](ROADMAP.md) for the full milestone list.
 - **v0.1.0** ✅ schema definitions, `vault-architect`, hand-built medical-device example vault, `cb validate`.
 - **v0.2.0** ✅ `intake` (vision + product + competitor sub-modes), `atomize` (markdown / Word / PDF / transcripts / image screenshots).
 - **v0.3.0** ✅ `query` + MRD (profile-aware, evidence-vs-vision split, IFU comparison, anti-decisions) + one-pager + markdown / html / docx output.
-- **v0.4.0** — `maintain` ✅ · 19 scaffolds ✅ · `visualize` next.
+- **v0.4.0** ✅ `maintain` + 19 doc scaffolds + `visualize` (D3 HTML viewer with IFU-chain and predicate-tree modes).
 - **v0.5.0** — second example vault (SaaS) + onboarding docs + CHANGELOG.
 - **v1.0.0** — public release tag and announcement.
 

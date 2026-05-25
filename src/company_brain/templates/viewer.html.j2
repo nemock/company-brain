@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>company-brain viewer — {{ meta.mode }}</title>
+  <style>
+    :root {
+      --cb-primary: {{ branding.primary }};
+      --cb-secondary: {{ branding.secondary }};
+      --cb-accent: {{ branding.accent }};
+      --cb-text: {{ branding.text }};
+      --cb-background: {{ branding.background }};
+      --cb-muted: {{ branding.muted }};
+    }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--cb-background); color: var(--cb-text);
+      font-family: {{ branding.font_family_body }};
+    }
+    header {
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--cb-muted);
+      font-family: {{ branding.font_family_headings }};
+      display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+    }
+    header h1 { margin: 0; font-size: 1.05rem; color: var(--cb-primary); }
+    header .meta { color: var(--cb-muted); font-size: 0.85rem; }
+    #app { display: flex; height: calc(100vh - 48px); }
+    #graph { flex: 1; background: var(--cb-background); }
+    aside {
+      width: 320px;
+      border-left: 1px solid var(--cb-muted);
+      padding: 1rem;
+      overflow: auto;
+      font-size: 0.9rem;
+    }
+    aside h2 { font-family: {{ branding.font_family_headings }}; color: var(--cb-secondary); margin-top: 0; font-size: 1rem; }
+    aside .legend-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.2rem 0; font-size: 0.85rem; }
+    aside .legend-swatch { width: 12px; height: 12px; border-radius: 50%; }
+    aside #detail { margin-top: 1.2rem; }
+    aside #detail .field { margin: 0.25rem 0; }
+    aside #detail .field strong { color: var(--cb-primary); }
+    .node { cursor: pointer; stroke: var(--cb-background); stroke-width: 1.5px; }
+    .node.dimmed { opacity: 0.18; }
+    .link { stroke-opacity: 0.45; }
+    .link.dimmed { stroke-opacity: 0.05; }
+    .label {
+      font-size: 9px; pointer-events: none;
+      fill: var(--cb-text);
+    }
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: var(--cb-text); color: var(--cb-background);
+      padding: 0.4rem 0.6rem; border-radius: 4px;
+      font-size: 0.8rem; max-width: 320px;
+      opacity: 0; transition: opacity 100ms;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>company-brain viewer</h1>
+    <div class="meta">
+      mode: <strong>{{ meta.mode }}</strong> ·
+      profile: <strong>{{ meta.profile }}</strong> ·
+      nodes: {{ meta.node_count }} · links: {{ meta.link_count }}
+    </div>
+  </header>
+  <div id="app">
+    <svg id="graph"></svg>
+    <aside>
+      <h2>Legend</h2>
+      <div id="legend"></div>
+      <h2 style="margin-top: 1.5rem;">Selected node</h2>
+      <div id="detail">
+        <p style="color: var(--cb-muted);">Click any node for details.</p>
+      </div>
+    </aside>
+  </div>
+  <div class="tooltip" id="tooltip"></div>
+
+  <script id="graph-data" type="application/json">{{ graph_json }}</script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+  (function () {
+    const data = JSON.parse(document.getElementById('graph-data').textContent);
+
+    // Stable type → color mapping. d3.schemeTableau10 hits 10; for more
+    // types we cycle through a wider palette.
+    const palette = [
+      "{{ branding.primary }}", "{{ branding.secondary }}", "{{ branding.accent }}",
+      "#a855f7", "#ec4899", "#f97316", "#facc15", "#22c55e",
+      "#06b6d4", "#6366f1", "#ef4444", "#84cc16",
+      "#f43f5e", "#0ea5e9", "#eab308", "#14b8a6"
+    ];
+    const types = Array.from(new Set(data.nodes.map(n => n.type))).sort();
+    const colorByType = {};
+    types.forEach((t, i) => { colorByType[t] = palette[i % palette.length]; });
+
+    // Build legend.
+    const legend = document.getElementById('legend');
+    types.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'legend-row';
+      const swatch = document.createElement('span');
+      swatch.className = 'legend-swatch';
+      swatch.style.background = colorByType[t];
+      const label = document.createElement('span');
+      const count = data.nodes.filter(n => n.type === t).length;
+      label.textContent = t + ' (' + count + ')';
+      row.appendChild(swatch); row.appendChild(label);
+      legend.appendChild(row);
+    });
+
+    const svg = d3.select('#graph');
+    const width = svg.node().clientWidth;
+    const height = svg.node().clientHeight;
+    svg.attr('viewBox', [0, 0, width, height]);
+
+    const zoomLayer = svg.append('g');
+    svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', e => {
+      zoomLayer.attr('transform', e.transform);
+    }));
+
+    const linkSel = zoomLayer.append('g')
+      .attr('stroke', '{{ branding.muted }}')
+      .selectAll('line')
+      .data(data.links)
+      .join('line')
+      .attr('class', 'link')
+      .attr('stroke-width', d => 0.6 + (d.weight || 0.5) * 1.4);
+
+    const nodeSel = zoomLayer.append('g')
+      .selectAll('circle')
+      .data(data.nodes)
+      .join('circle')
+      .attr('class', 'node')
+      .attr('r', 6)
+      .attr('fill', d => colorByType[d.type] || '{{ branding.muted }}')
+      .on('mouseover', (event, d) => {
+        const t = document.getElementById('tooltip');
+        t.innerHTML = '<strong>' + escapeHtml(d.title) + '</strong><br/>' +
+          '<em>' + escapeHtml(d.type) + '</em><br/>' +
+          escapeHtml(d.summary || '');
+        t.style.left = (event.pageX + 12) + 'px';
+        t.style.top = (event.pageY + 12) + 'px';
+        t.style.opacity = 1;
+      })
+      .on('mousemove', (event) => {
+        const t = document.getElementById('tooltip');
+        t.style.left = (event.pageX + 12) + 'px';
+        t.style.top = (event.pageY + 12) + 'px';
+      })
+      .on('mouseout', () => {
+        document.getElementById('tooltip').style.opacity = 0;
+      })
+      .on('click', (event, d) => showDetail(d))
+      .call(drag());
+
+    const labelSel = zoomLayer.append('g')
+      .selectAll('text')
+      .data(data.nodes)
+      .join('text')
+      .attr('class', 'label')
+      .attr('dx', 8).attr('dy', '0.3em')
+      .text(d => d.id);
+
+    const sim = d3.forceSimulation(data.nodes)
+      .force('link', d3.forceLink(data.links).id(d => d.id).distance(60).strength(0.4))
+      .force('charge', d3.forceManyBody().strength(-180))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collide', d3.forceCollide(14))
+      .on('tick', () => {
+        linkSel
+          .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        nodeSel.attr('cx', d => d.x).attr('cy', d => d.y);
+        labelSel.attr('x', d => d.x).attr('y', d => d.y);
+      });
+
+    function drag() {
+      function dragstarted(event) {
+        if (!event.active) sim.alphaTarget(0.3).restart();
+        event.subject.fx = event.subject.x;
+        event.subject.fy = event.subject.y;
+      }
+      function dragged(event) {
+        event.subject.fx = event.x;
+        event.subject.fy = event.y;
+      }
+      function dragended(event) {
+        if (!event.active) sim.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+      }
+      return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
+    }
+
+    function showDetail(node) {
+      const neighborIds = new Set([node.id]);
+      data.links.forEach(l => {
+        const s = typeof l.source === 'object' ? l.source.id : l.source;
+        const t = typeof l.target === 'object' ? l.target.id : l.target;
+        if (s === node.id) neighborIds.add(t);
+        if (t === node.id) neighborIds.add(s);
+      });
+      nodeSel.classed('dimmed', d => !neighborIds.has(d.id));
+      linkSel.classed('dimmed', d => {
+        const s = typeof d.source === 'object' ? d.source.id : d.source;
+        const t = typeof d.target === 'object' ? d.target.id : d.target;
+        return !(neighborIds.has(s) && neighborIds.has(t));
+      });
+
+      const det = document.getElementById('detail');
+      det.innerHTML = [
+        '<div class="field"><strong>id:</strong> <code>' + escapeHtml(node.id) + '</code></div>',
+        '<div class="field"><strong>type:</strong> ' + escapeHtml(node.type) + '</div>',
+        '<div class="field"><strong>title:</strong> ' + escapeHtml(node.title) + '</div>',
+        '<div class="field"><strong>summary:</strong> ' + escapeHtml(node.summary || '') + '</div>',
+        node.namespace ? '<div class="field"><strong>namespace:</strong> ' + escapeHtml(node.namespace) + '</div>' : '',
+        node.confidence != null ? '<div class="field"><strong>confidence:</strong> ' + node.confidence + '</div>' : '',
+        node.verified_at ? '<div class="field"><strong>verified_at:</strong> ' + escapeHtml(node.verified_at) + '</div>' : '',
+        node.source_kind ? '<div class="field"><strong>source_kind:</strong> ' + escapeHtml(node.source_kind) + '</div>' : '',
+      ].join('');
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  })();
+  </script>
+  <footer style="position: fixed; bottom: 4px; right: 8px; color: {{ branding.muted }}; font-size: 0.75rem;">
+    company-brain v{{ meta.cb_version }} · viewer generated {{ meta.generation_date }}
+  </footer>
+</body>
+</html>
