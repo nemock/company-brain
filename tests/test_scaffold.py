@@ -295,11 +295,135 @@ def test_running_scaffold_twice_skips_files_without_force(tmp_path: Path) -> Non
     assert len(second.files_skipped) == 9
 
 
-def test_force_regenerates_files(tmp_path: Path) -> None:
+def test_force_regenerates_scaffold_managed_files(tmp_path: Path) -> None:
+    """`--force` rewrites the schema reference docs + README, but by
+    design leaves `_branding/colors.yaml` and `_branding/README.md`
+    alone (user-customized; require `reset_branding` to overwrite).
+    The marker-aware `.gitignore` is idempotent — silently skipped when
+    its content matches.
+    """
+
     scaffold(tmp_path / "v", "medical-device", init_git=False)
     second = scaffold(tmp_path / "v", "medical-device", init_git=False, force=True)
-    assert second.file_count == 9
-    assert second.files_skipped == []
+    written_names = sorted(p.name for p in second.files_written)
+    # 5 system docs + 1 README.
+    assert written_names == sorted(
+        [
+            "PROFILE.md",
+            "INDEX.md",
+            "NODE-TYPES.md",
+            "EDGE-TYPES.md",
+            "FRONTMATTER-SCHEMA.md",
+            "README.md",
+        ]
+    )
+    # Branding files are skipped (user-customized; requires --reset-branding).
+    skipped_names = sorted(p.name for p in second.files_skipped)
+    assert "colors.yaml" in skipped_names
+    assert skipped_names.count("README.md") == 1  # _branding/README.md
+
+
+def test_force_with_reset_branding_rewrites_branding_files(tmp_path: Path) -> None:
+    """`--reset-branding` in combination with `--force` includes the
+    branding starters in the rewrite set."""
+
+    scaffold(tmp_path / "v", "medical-device", init_git=False)
+    second = scaffold(
+        tmp_path / "v",
+        "medical-device",
+        init_git=False,
+        force=True,
+        reset_branding=True,
+    )
+    written_names = sorted(p.name for p in second.files_written)
+    # Branding files are now in the rewrite set.
+    assert "colors.yaml" in written_names
+    assert written_names.count("README.md") == 2  # vault + branding READMEs
+
+
+# ---------------------------------------------------------------------------
+# .gitignore marker behavior
+# ---------------------------------------------------------------------------
+
+
+def test_fresh_scaffold_writes_gitignore_with_markers(tmp_path: Path) -> None:
+    """Newly scaffolded vault's .gitignore has the cb:gitignore-managed
+    markers wrapping the schema-baseline rules."""
+
+    from company_brain.scaffold import GITIGNORE_MANAGED_END, GITIGNORE_MANAGED_START
+
+    scaffold(tmp_path / "v", "default", init_git=False)
+    text = (tmp_path / "v" / ".gitignore").read_text()
+    assert GITIGNORE_MANAGED_START in text
+    assert GITIGNORE_MANAGED_END in text
+    # The schema-baseline rules are between the markers.
+    start = text.index(GITIGNORE_MANAGED_START)
+    end = text.index(GITIGNORE_MANAGED_END)
+    block = text[start:end]
+    assert "_system/INDEX.md" in block
+    assert ".DS_Store" in block
+
+
+def test_force_preserves_user_rules_outside_gitignore_markers(tmp_path: Path) -> None:
+    """The aim_wiki scenario: a user has added rules outside the markers
+    (above or below), and `--force` must not clobber them."""
+
+    from company_brain.scaffold import GITIGNORE_MANAGED_END
+
+    scaffold(tmp_path / "v", "default", init_git=False)
+    gitignore = tmp_path / "v" / ".gitignore"
+    original = gitignore.read_text()
+    # Append a "user rules" block below the managed section.
+    user_block = (
+        "\n# User-added build artifacts\n"
+        "node_modules/\n"
+        "*.app\n"
+        "*.mp4\n"
+    )
+    gitignore.write_text(original + user_block, encoding="utf-8")
+
+    # Also prepend something above the managed block.
+    text_with_prefix = (
+        "# Custom top-of-file header — must survive\n"
+        + gitignore.read_text()
+    )
+    gitignore.write_text(text_with_prefix, encoding="utf-8")
+
+    scaffold(tmp_path / "v", "default", init_git=False, force=True)
+    after = gitignore.read_text()
+    # User additions both above and below the markers survive.
+    assert "# Custom top-of-file header — must survive" in after
+    assert "node_modules/" in after
+    assert "*.app" in after
+    assert "*.mp4" in after
+    # The managed block is still intact.
+    assert "_system/INDEX.md" in after
+    assert GITIGNORE_MANAGED_END in after
+
+
+def test_force_on_legacy_gitignore_without_markers_preserves_it(
+    tmp_path: Path,
+) -> None:
+    """A pre-marker `.gitignore` is preserved on `--force` rather than
+    silently clobbered. The user can run `cb maintain
+    init-gitignore-markers` to upgrade."""
+
+    from company_brain.scaffold import GITIGNORE_MANAGED_START
+
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+    # Replace the scaffold .gitignore with a pre-marker (legacy) version.
+    legacy = "_system/INDEX.md\nnode_modules/\n.DS_Store\n"
+    (vault / ".gitignore").write_text(legacy, encoding="utf-8")
+
+    result = scaffold(vault, "default", init_git=False, force=True)
+    # Legacy file unchanged.
+    assert (vault / ".gitignore").read_text() == legacy
+    # And the scaffold result shows it as skipped, not written.
+    assert (vault / ".gitignore") in result.files_skipped
+    assert (vault / ".gitignore") not in result.files_written
+    # Sanity: the marker is genuinely absent (we didn't accidentally inject it).
+    assert GITIGNORE_MANAGED_START not in (vault / ".gitignore").read_text()
 
 
 # ---------------------------------------------------------------------------

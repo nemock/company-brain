@@ -22,12 +22,19 @@ import yaml
 from company_brain.maintain import (
     audit,
     decay,
+    init_gitignore_markers,
     init_readme_markers,
     rebuild_index,
     rebuild_readme,
     repair,
 )
-from company_brain.scaffold import AUTO_README_END, AUTO_README_START, scaffold
+from company_brain.scaffold import (
+    AUTO_README_END,
+    AUTO_README_START,
+    GITIGNORE_MANAGED_END,
+    GITIGNORE_MANAGED_START,
+    scaffold,
+)
 from company_brain.validator import validate
 from company_brain.vault import VaultNotFoundError, load_vault, split_frontmatter
 
@@ -665,6 +672,78 @@ def test_init_then_rebuild_round_trip(tmp_path: Path) -> None:
     assert AUTO_README_START in after
     assert AUTO_README_END in after
     assert "**Vault state:**" in after
+
+
+def test_init_gitignore_markers_wraps_legacy_file(tmp_path: Path) -> None:
+    """A pre-marker .gitignore (with user rules) gets the managed block
+    prepended; user rules survive below."""
+
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+    # Replace the scaffold gitignore with a legacy (pre-marker) version
+    # containing user rules.
+    legacy = "_system/INDEX.md\nnode_modules/\n*.app\n*.mp4\n"
+    (vault / ".gitignore").write_text(legacy, encoding="utf-8")
+
+    result = init_gitignore_markers(vault)
+    assert result.status == "rebuilt"
+    after = (vault / ".gitignore").read_text()
+    assert GITIGNORE_MANAGED_START in after
+    assert GITIGNORE_MANAGED_END in after
+    # User rules survive (below the managed block).
+    assert "node_modules/" in after
+    assert "*.app" in after
+    assert "*.mp4" in after
+    # The original first line (which was a duplicate of a managed rule) also survives.
+    assert legacy in after
+
+
+def test_init_gitignore_markers_refuses_when_already_present(tmp_path: Path) -> None:
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+    # Fresh scaffold already has markers — second invocation should refuse.
+    with pytest.raises(ValueError, match="already contains"):
+        init_gitignore_markers(vault)
+
+
+def test_init_gitignore_markers_raises_when_no_gitignore(tmp_path: Path) -> None:
+    (tmp_path / "v" / "_system").mkdir(parents=True)
+    (tmp_path / "v" / "_system" / "PROFILE.md").write_text(
+        "---\nprofile: default\n---\n", encoding="utf-8"
+    )
+    with pytest.raises(FileNotFoundError):
+        init_gitignore_markers(tmp_path / "v")
+
+
+def test_init_gitignore_then_scaffold_force_preserves_user_rules(
+    tmp_path: Path,
+) -> None:
+    """The full upgrade path: legacy gitignore → init markers → future
+    `cb scaffold --force` runs splice cleanly."""
+
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+    legacy = "_system/INDEX.md\nnode_modules/\n*.mp4\n"
+    (vault / ".gitignore").write_text(legacy, encoding="utf-8")
+
+    init_gitignore_markers(vault)
+    # Now `--force` should splice without losing the user rules.
+    scaffold(vault, "default", init_git=False, force=True)
+    after = (vault / ".gitignore").read_text()
+    assert "node_modules/" in after
+    assert "*.mp4" in after
+    assert GITIGNORE_MANAGED_START in after
+
+
+def test_init_gitignore_markers_dry_run_does_not_write(tmp_path: Path) -> None:
+    vault = tmp_path / "v"
+    scaffold(vault, "default", init_git=False)
+    legacy = "node_modules/\n"
+    (vault / ".gitignore").write_text(legacy, encoding="utf-8")
+    before = (vault / ".gitignore").read_bytes()
+    result = init_gitignore_markers(vault, dry_run=True)
+    assert result.status == "skipped-dry-run"
+    assert (vault / ".gitignore").read_bytes() == before
 
 
 def test_repair_also_refreshes_readme_auto_section(cloned_meddev: Path) -> None:

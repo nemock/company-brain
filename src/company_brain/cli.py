@@ -38,6 +38,7 @@ from .intake_helpers import (
 from .maintain import (
     audit as maintain_audit,
     decay as maintain_decay,
+    init_gitignore_markers as maintain_init_gitignore_markers,
     init_readme_markers as maintain_init_readme_markers,
     rebuild_index as maintain_rebuild_index,
     rebuild_readme as maintain_rebuild_readme,
@@ -128,8 +129,24 @@ def scaffold_command(
         False,
         "--force",
         help=(
-            "Regenerate _system/*.md, _branding/ starters, .gitignore, "
-            "and README.md even when those files already exist."
+            "Regenerate _system/*.md, .gitignore, and README.md even when "
+            "they already exist. .gitignore regeneration is marker-aware: "
+            "only the block between cb:gitignore-managed markers is "
+            "rewritten; user-added rules outside the markers are preserved. "
+            "Legacy .gitignore without markers is preserved as-is — run "
+            "`cb maintain init-gitignore-markers` to upgrade. "
+            "_branding/colors.yaml and _branding/README.md are NOT "
+            "overwritten by --force alone; pass --reset-branding too."
+        ),
+    ),
+    reset_branding: bool = typer.Option(
+        False,
+        "--reset-branding",
+        help=(
+            "In combination with --force, also overwrite "
+            "_branding/colors.yaml and _branding/README.md back to the "
+            "scaffold defaults. Use this only when you want to discard "
+            "vault-level brand customizations."
         ),
     ),
     git: bool = typer.Option(
@@ -158,7 +175,13 @@ def scaffold_command(
     """
 
     try:
-        result = scaffold_vault(path.resolve(), profile, force=force, init_git=git)
+        result = scaffold_vault(
+            path.resolve(),
+            profile,
+            force=force,
+            reset_branding=reset_branding,
+            init_git=git,
+        )
     except ProfileNotFoundError as exc:
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
@@ -952,6 +975,49 @@ def maintain_init_readme_markers_command(
     if not dry_run and result.status == "rebuilt":
         typer.echo("")
         typer.echo("Next: run `cb maintain rebuild-readme` to populate the auto-section.")
+
+
+@maintain_app.command("init-gitignore-markers")
+def maintain_init_gitignore_markers_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would change without writing anything.",
+    ),
+) -> None:
+    """Wrap an existing vault `.gitignore` in cb:gitignore-managed markers.
+
+    The migration path for vaults scaffolded before the marker convention
+    landed. Once the markers exist, future `cb scaffold --force` runs
+    splice the managed block in place without clobbering user-added
+    rules (e.g. `node_modules/`, `*.mp4`).
+
+    Errors clearly if the `.gitignore` is missing or already has markers.
+    """
+
+    try:
+        result = maintain_init_gitignore_markers(path.resolve(), dry_run=dry_run)
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    except (FileNotFoundError, ValueError) as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    prefix = "(dry-run) " if dry_run else ""
+    typer.echo(f"{prefix}{result.status}: {result.detail}")
+    if not dry_run and result.status == "rebuilt":
+        typer.echo("")
+        typer.echo(
+            "Future `cb scaffold --force` runs will splice the managed "
+            "block in place — user rules outside the markers are preserved."
+        )
 
 
 @maintain_app.command("rebuild-readme")

@@ -52,6 +52,13 @@ from .schema import (
 AUTO_README_START = "<!-- cb:auto START -->"
 AUTO_README_END = "<!-- cb:auto END -->"
 
+# Marker pair the `cb scaffold --force` pass uses to splice managed
+# .gitignore rules in place without clobbering user-added rules. Same
+# contract as the README markers: anything outside the markers is
+# preserved, anything between gets rewritten.
+GITIGNORE_MANAGED_START = "# cb:gitignore-managed START"
+GITIGNORE_MANAGED_END = "# cb:gitignore-managed END"
+
 
 # ---------------------------------------------------------------------------
 # Result type
@@ -94,6 +101,7 @@ def scaffold(
     profile_name: str,
     *,
     force: bool = False,
+    reset_branding: bool = False,
     init_git: bool = True,
     today: date | None = None,
     verified_by: str | None = None,
@@ -103,8 +111,19 @@ def scaffold(
     Args:
       vault_path: target directory. Created if missing.
       profile_name: must resolve to a registered profile.
-      force: if True, regenerate ``_system/*.md``, ``_branding/`` starters,
-        ``.gitignore``, and ``README.md`` even when they already exist.
+      force: if True, regenerate `_system/*.md`, `.gitignore`, and
+        `README.md` even when they already exist. ``.gitignore``
+        regeneration is marker-aware — only the block between
+        ``cb:gitignore-managed`` markers is rewritten; user-added rules
+        outside the markers are preserved. A legacy ``.gitignore``
+        without markers is preserved as-is (run
+        ``cb maintain init-gitignore-markers`` to upgrade).
+        ``_branding/colors.yaml`` and ``_branding/README.md`` are NOT
+        overwritten by ``force`` alone — they require ``reset_branding``
+        too — so that vault-level brand customizations survive upgrades.
+      reset_branding: if True, also overwrite ``_branding/colors.yaml``
+        and ``_branding/README.md`` (only effective in combination with
+        ``force``).
       init_git: if True (default), run ``git init`` and create an initial
         commit. No-op if the directory is already inside a git repo's
         working tree or if git is not installed.
@@ -155,12 +174,28 @@ def scaffold(
         _write_or_skip(system_dir / filename, content, force=force, result=result)
 
     # --- _branding starter files -------------------------------------------
+    # Branding is user-customized by definition. `--force` alone does NOT
+    # overwrite these — the user must explicitly opt in via reset_branding.
+    branding_force = force and reset_branding
     branding_dir = vault_path / "_branding"
-    _write_or_skip(branding_dir / "colors.yaml", _render_branding_colors_yaml(), force=force, result=result)
-    _write_or_skip(branding_dir / "README.md", _render_branding_readme(), force=force, result=result)
+    _write_or_skip(
+        branding_dir / "colors.yaml",
+        _render_branding_colors_yaml(),
+        force=branding_force,
+        result=result,
+    )
+    _write_or_skip(
+        branding_dir / "README.md",
+        _render_branding_readme(),
+        force=branding_force,
+        result=result,
+    )
 
     # --- vault-level .gitignore and README ---------------------------------
-    _write_or_skip(vault_path / ".gitignore", _render_gitignore(), force=force, result=result)
+    # .gitignore is marker-aware: --force splices the managed block in
+    # place, preserving user-added rules outside the markers. Legacy
+    # vaults without markers are preserved as-is.
+    _write_gitignore(vault_path / ".gitignore", force=force, result=result)
     _write_or_skip(
         vault_path / "README.md",
         _render_vault_readme(profile, today),
@@ -216,6 +251,68 @@ def _write_or_skip(
         return
     path.write_text(content, encoding="utf-8")
     result.files_written.append(path)
+
+
+def _write_gitignore(
+    path: Path, *, force: bool, result: VaultScaffoldResult
+) -> None:
+    """Write the vault .gitignore, splicing in place to preserve user rules.
+
+    Three cases:
+
+    1. **No existing file** — write the full template (managed block + the
+       small explanatory header).
+    2. **Existing file WITH `cb:gitignore-managed` markers** — splice a
+       fresh managed block between the markers. Everything outside is
+       preserved exactly.
+    3. **Existing file WITHOUT markers** — legacy file the user may have
+       hand-edited. Skip with a note in ``files_skipped``; the user can
+       run ``cb maintain init-gitignore-markers`` to upgrade.
+
+    Cases (2) and (3) only fire when ``force=True``; without ``--force``
+    the file is left alone if it exists (preserving the v0.1.0+ behavior
+    of every other scaffolded file).
+    """
+
+    if not path.exists():
+        path.write_text(_render_gitignore(), encoding="utf-8")
+        result.files_written.append(path)
+        return
+
+    if not force:
+        result.files_skipped.append(path)
+        return
+
+    existing = path.read_text(encoding="utf-8")
+    if GITIGNORE_MANAGED_START in existing and GITIGNORE_MANAGED_END in existing:
+        new_text = _splice_gitignore_managed_block(existing)
+        if new_text != existing:
+            path.write_text(new_text, encoding="utf-8")
+            result.files_written.append(path)
+        else:
+            # Already up to date — no write, no churn in result counts.
+            pass
+        return
+
+    # Legacy: existing .gitignore has no markers. Preserve it to avoid
+    # clobbering hand-added rules. The user can opt-in via
+    # `cb maintain init-gitignore-markers` to migrate.
+    result.files_skipped.append(path)
+
+
+def _splice_gitignore_managed_block(existing: str) -> str:
+    """Replace the cb:gitignore-managed block in ``existing`` with a fresh one."""
+
+    start = existing.find(GITIGNORE_MANAGED_START)
+    end = existing.find(GITIGNORE_MANAGED_END)
+    if start == -1 or end == -1 or end < start:
+        return existing  # caller already checked, but be safe.
+    end_of_marker = end + len(GITIGNORE_MANAGED_END)
+    return (
+        existing[:start]
+        + _render_gitignore_managed_block()
+        + existing[end_of_marker:]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -418,8 +515,30 @@ def _render_frontmatter_schema_md(active_types: tuple[NodeTypeSpec, ...]) -> str
 
 
 def _render_gitignore() -> str:
-    return """# company-brain vault-level .gitignore
+    """Full .gitignore template for a freshly-scaffolded vault.
+
+    The managed block is wrapped in :data:`GITIGNORE_MANAGED_START` /
+    :data:`GITIGNORE_MANAGED_END` markers so that `cb scaffold --force`
+    on an existing vault can splice the managed rules in place without
+    clobbering user-added rules (e.g. ``node_modules/``, ``*.mp4``).
+    """
+
+    return f"""# company-brain vault-level .gitignore
 # See https://github.com/nemock/company-brain — docs/vault-as-git-repository.md
+#
+# Rules between the cb:gitignore-managed markers are owned by `cb scaffold`
+# and get refreshed on `cb scaffold --force`. Add your own rules OUTSIDE
+# the markers (above or below) — they will be preserved across upgrades.
+
+{_render_gitignore_managed_block()}
+"""
+
+
+def _render_gitignore_managed_block() -> str:
+    """Just the marker-wrapped block — used both by fresh scaffolds and by
+    in-place splicing on `--force`."""
+
+    return f"""{GITIGNORE_MANAGED_START}
 
 # Generated; rebuild with `cb` on demand
 _system/INDEX.md
@@ -434,7 +553,8 @@ Thumbs.db
 *.swo
 .vscode/
 .idea/
-"""
+
+{GITIGNORE_MANAGED_END}"""
 
 
 def _render_branding_colors_yaml() -> str:

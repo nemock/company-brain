@@ -1,5 +1,30 @@
 # company-brain vault-level .gitignore
 # See https://github.com/nemock/company-brain — docs/vault-as-git-repository.md
+#
+# Rules between the cb:gitignore-managed markers are owned by `cb scaffold`
+# and get refreshed on `cb scaffold --force`. Add your own rules OUTSIDE
+# the markers (above or below) — they will be preserved across upgrades.
+
+# cb:gitignore-managed START
+
+# Generated; rebuild with `cb` on demand
+_system/INDEX.md
+
+# Obsidian per-machine workspace state
+.obsidian/workspace*.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# cb:gitignore-managed END
+
+# company-brain vault-level .gitignore
+# See https://github.com/nemock/company-brain — docs/vault-as-git-repository.md
 
 # Generated; rebuild with `cb` on demand
 _system/INDEX.md

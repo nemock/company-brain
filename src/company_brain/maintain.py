@@ -38,7 +38,13 @@ from typing import Any
 
 import yaml
 
-from .scaffold import AUTO_README_END, AUTO_README_START
+from .scaffold import (
+    AUTO_README_END,
+    AUTO_README_START,
+    GITIGNORE_MANAGED_END,
+    GITIGNORE_MANAGED_START,
+    _render_gitignore_managed_block,
+)
 from .schema import (
     EDGE_TYPES,
     NodeCategory,
@@ -322,6 +328,76 @@ def _find_marker_insertion_point(text: str, position: str) -> int:
         next_h2 = h2_indices[1]
         return sum(len(line) for line in lines[:next_h2])
     return len(text.rstrip()) + 1
+
+
+def init_gitignore_markers(
+    vault_path: Path, *, dry_run: bool = False
+) -> ReadmeRegenResult:
+    """Wrap an existing ``<vault>/.gitignore`` in cb:gitignore-managed markers.
+
+    The migration path for vaults scaffolded before the marker convention
+    landed. After the markers exist, future ``cb scaffold --force`` runs
+    splice the managed block in place without clobbering user-added
+    rules outside the markers.
+
+    Behavior:
+
+    * If ``.gitignore`` doesn't exist → ``FileNotFoundError`` (suggest
+      ``cb scaffold --force`` to create one).
+    * If markers are already present → ``ValueError`` (no-op).
+    * Otherwise → prepend a fresh managed block at the top of the file,
+      followed by any existing content. User-added rules are preserved
+      below the managed block.
+
+    The placement choice (managed block at the TOP) is deliberate:
+    typical user additions like ``node_modules/``, ``*.mp4``, language
+    artifacts read more naturally below the schema-baseline rules than
+    above them.
+    """
+
+    gitignore = vault_path / ".gitignore"
+    if not gitignore.is_file():
+        raise FileNotFoundError(
+            f"{gitignore} does not exist; run `cb scaffold --force` to create it."
+        )
+
+    text = gitignore.read_text(encoding="utf-8")
+    if GITIGNORE_MANAGED_START in text or GITIGNORE_MANAGED_END in text:
+        raise ValueError(
+            f"{gitignore} already contains the cb:gitignore-managed "
+            "markers; nothing to do. Future `cb scaffold --force` runs "
+            "will splice the managed block in place automatically."
+        )
+
+    managed = _render_gitignore_managed_block()
+    header = (
+        "# company-brain vault-level .gitignore\n"
+        "# See https://github.com/nemock/company-brain — "
+        "docs/vault-as-git-repository.md\n"
+        "#\n"
+        "# Rules between the cb:gitignore-managed markers are owned by "
+        "`cb scaffold`\n"
+        "# and get refreshed on `cb scaffold --force`. Add your own rules "
+        "OUTSIDE\n"
+        "# the markers (above or below) — they will be preserved across "
+        "upgrades.\n"
+        "\n"
+    )
+    new_text = header + managed + "\n\n" + text
+
+    if dry_run:
+        return ReadmeRegenResult(
+            path=gitignore,
+            status="skipped-dry-run",
+            detail="would prepend cb:gitignore-managed block to .gitignore",
+        )
+
+    gitignore.write_text(new_text, encoding="utf-8")
+    return ReadmeRegenResult(
+        path=gitignore,
+        status="rebuilt",
+        detail="prepended cb:gitignore-managed block; user rules preserved below",
+    )
 
 
 def rebuild_readme(
@@ -927,6 +1003,7 @@ __all__ = [
     "VaultNotFoundError",
     "audit",
     "decay",
+    "init_gitignore_markers",
     "init_readme_markers",
     "rebuild_index",
     "rebuild_readme",

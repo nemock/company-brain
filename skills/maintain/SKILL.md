@@ -1,6 +1,6 @@
 ---
 name: maintain
-description: Audit and repair a company-brain vault. cb maintain repair auto-fixes filename-id mismatch, missing inverse edges (preceded_by ↔ followed_by), and missing controlled_document:false on risk/IFU nodes; it also regenerates _system/INDEX.md and refreshes the auto-section of the vault-level README.md (between cb:auto markers). cb maintain decay applies half-life confidence decay to fact snapshots linked to volatile metrics. cb maintain rebuild-index regenerates _system/INDEX.md only. cb maintain rebuild-readme regenerates the README auto-section only. cb maintain audit reports vault health read-only. cb validate --fix wires the repair pass into validation.
+description: Audit and repair a company-brain vault. cb maintain repair auto-fixes filename-id mismatch, missing inverse edges (preceded_by ↔ followed_by), and missing controlled_document:false on risk/IFU nodes; it also regenerates _system/INDEX.md and refreshes the auto-section of the vault-level README.md (between cb:auto markers). cb maintain decay applies half-life confidence decay to fact snapshots linked to volatile metrics. cb maintain rebuild-index regenerates _system/INDEX.md only. cb maintain rebuild-readme regenerates the README auto-section only. cb maintain init-readme-markers and cb maintain init-gitignore-markers add the cb:auto and cb:gitignore-managed markers to legacy vaults (non-destructive upgrade path). cb maintain audit reports vault health read-only. cb validate --fix wires the repair pass into validation.
 ---
 
 # maintain
@@ -101,6 +101,27 @@ cb maintain init-readme-markers --path <vault> --dry-run
 ```
 
 Idempotent in spirit (errors clearly when markers are already present rather than re-inserting). After running this once, follow up with `cb maintain rebuild-readme` to populate the inserted block.
+
+### Inserting cb:gitignore-managed markers into an older .gitignore (`cb maintain init-gitignore-markers`)
+
+Mirror of `init-readme-markers` for the vault-level `.gitignore`. Same friction: a vault scaffolded before the marker convention has a plain `.gitignore`, and `cb scaffold --force` was clobbering user-added rules like `node_modules/`, `*.app`, `*.mp4` on every upgrade. With markers present, future `cb scaffold --force` runs splice the managed block (the schema-baseline rules: `_system/INDEX.md`, `.DS_Store`, etc.) in place — anything outside survives.
+
+```bash
+cb maintain init-gitignore-markers --path <vault>
+cb maintain init-gitignore-markers --path <vault> --dry-run
+```
+
+Prepends a fresh managed block at the top of the existing file. The entire prior content is preserved below — so any user-added rules that were already there stay where they were. Errors clearly if the file is missing or if markers are already present.
+
+### `cb scaffold --force` and `--reset-branding`
+
+`cb scaffold --force` on an existing vault now refreshes only the things the user shouldn't be customizing: the `_system/*.md` schema reference docs and the vault `README.md`. It explicitly leaves alone:
+
+- `_branding/colors.yaml` and `_branding/README.md` — these are user-customized brand assets. Pass `--reset-branding` together with `--force` to overwrite them back to the scaffold defaults.
+- User-added rules in `.gitignore` outside the cb:gitignore-managed markers.
+- The hand-editable content of `README.md` outside the cb:auto markers.
+
+A legacy `.gitignore` without the cb:gitignore-managed markers is preserved as-is (skipped, not clobbered) — run `cb maintain init-gitignore-markers` to opt into the new behavior.
 
 ## What this skill does NOT do
 
