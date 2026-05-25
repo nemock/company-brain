@@ -43,6 +43,36 @@ def cloned_meddev(tmp_path: Path) -> Path:
     return dest
 
 
+@pytest.fixture
+def broken_meddev(cloned_meddev: Path) -> Path:
+    """Cloned meddev vault with the inverse `followed_by` edges stripped.
+
+    The committed example vault is already repaired (ships in the
+    post-repair state for adopters). To exercise the repair pass we have
+    to put it back into a broken state — strip every `followed_by` edge
+    so the surviving `preceded_by` edges have no inverse.
+    """
+
+    for md in cloned_meddev.rglob("*.md"):
+        text = md.read_text(encoding="utf-8")
+        fm_text, body = split_frontmatter(text)
+        if fm_text is None:
+            continue
+        data = yaml.safe_load(fm_text) or {}
+        if not isinstance(data, dict):
+            continue
+        edges = data.get("edges") or []
+        if not isinstance(edges, list):
+            continue
+        filtered = [e for e in edges if isinstance(e, dict) and e.get("type") != "followed_by"]
+        if len(filtered) == len(edges):
+            continue
+        data["edges"] = filtered
+        new_fm = yaml.safe_dump(data, sort_keys=False, allow_unicode=True).strip()
+        md.write_text(f"---\n{new_fm}\n---\n{body}", encoding="utf-8")
+    return cloned_meddev
+
+
 def _read_frontmatter(path: Path) -> dict:
     text = path.read_text(encoding="utf-8")
     fm, _ = split_frontmatter(text)
@@ -55,13 +85,11 @@ def _read_frontmatter(path: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_repair_adds_inverse_followed_by_edges(cloned_meddev: Path) -> None:
-    # The example vault deliberately has preceded_by chains without the
-    # inverse followed_by edges set.
-    result = repair(cloned_meddev, dry_run=False)
+def test_repair_adds_inverse_followed_by_edges(broken_meddev: Path) -> None:
+    result = repair(broken_meddev, dry_run=False)
     assert any(a.code == "added-inverse-edge" for a in result.actions)
     # After repair, every preceded_by has its inverse.
-    vault = load_vault(cloned_meddev)
+    vault = load_vault(broken_meddev)
     nodes_by_id = vault.nodes_by_id
     for node in vault.nodes:
         for edge in node.edges:
@@ -75,33 +103,42 @@ def test_repair_adds_inverse_followed_by_edges(cloned_meddev: Path) -> None:
             ), f"missing inverse from {target.id} → {node.id}"
 
 
-def test_repair_is_idempotent(cloned_meddev: Path) -> None:
-    first = repair(cloned_meddev, dry_run=False)
+def test_repair_is_idempotent(broken_meddev: Path) -> None:
+    first = repair(broken_meddev, dry_run=False)
     assert first.actions  # something happened
-    second = repair(cloned_meddev, dry_run=False)
+    second = repair(broken_meddev, dry_run=False)
     assert second.actions == []  # nothing left to do
     # INDEX.md is always rebuilt, even on a no-op pass.
     assert second.index_rebuilt is True
 
 
-def test_repair_leaves_validate_clean(cloned_meddev: Path) -> None:
-    repair(cloned_meddev, dry_run=False)
-    issues = validate(cloned_meddev)
+def test_repair_leaves_validate_clean(broken_meddev: Path) -> None:
+    repair(broken_meddev, dry_run=False)
+    issues = validate(broken_meddev)
     errors = [i for i in issues if i.severity == "error"]
     assert errors == []
 
 
-def test_repair_dry_run_does_not_write(cloned_meddev: Path) -> None:
+def test_repair_dry_run_does_not_write(broken_meddev: Path) -> None:
     # Snapshot every node file's content first.
     files_before = {
-        p: p.read_bytes() for p in cloned_meddev.rglob("*.md")
+        p: p.read_bytes() for p in broken_meddev.rglob("*.md")
     }
-    result = repair(cloned_meddev, dry_run=True)
+    result = repair(broken_meddev, dry_run=True)
     assert result.dry_run is True
     assert result.actions  # there are repairs available
     for path, content in files_before.items():
         # All files must be byte-identical after a dry-run.
         assert path.read_bytes() == content, f"dry-run wrote {path}"
+
+
+def test_repair_on_already_clean_vault_is_noop(cloned_meddev: Path) -> None:
+    """The committed example vault ships repaired, so a fresh clone has
+    no repair actions to take (only the INDEX.md regen happens)."""
+
+    result = repair(cloned_meddev, dry_run=False)
+    assert result.actions == []
+    assert result.index_rebuilt is True
 
 
 def test_repair_renames_file_when_id_mismatches(tmp_path: Path) -> None:
@@ -380,11 +417,17 @@ def test_rebuild_index_is_idempotent(cloned_meddev: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_audit_returns_repair_and_decay_candidates(cloned_meddev: Path) -> None:
-    report = audit(cloned_meddev)
-    # The example vault has missing inverse edges.
+def test_audit_returns_repair_and_decay_candidates(broken_meddev: Path) -> None:
+    report = audit(broken_meddev)
+    # The synthetic-broken vault has missing inverse edges.
     assert len(report.repair_candidates) > 0
     # Findings include at least the vault-size info line.
+    assert any(f.code == "vault-size" for f in report.findings)
+
+
+def test_audit_on_clean_vault_has_no_repair_candidates(cloned_meddev: Path) -> None:
+    report = audit(cloned_meddev)
+    assert report.repair_candidates == []
     assert any(f.code == "vault-size" for f in report.findings)
 
 
