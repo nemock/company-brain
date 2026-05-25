@@ -1,6 +1,6 @@
 ---
 name: doc-generate
-description: Generate planning documents from a company-brain vault. v0.3.0 ships the full MRD (markdown / html / docx) and one-pager (markdown / html) generators. Profile-aware - medical-device sections (IFU, regulatory landscape) are included only when the active profile is medical-device. The 19 scaffolded generators (PID, business plan, competitive brief, risk brainstorm, sales battle card, decision log, SRD/SRS/HRS, etc.) ship in v0.4.0.
+description: Generate planning documents from a company-brain vault. Ships 21 generators: full MRD (markdown / html / docx) and one-pager (markdown / html); plus 19 scaffolds for PID, project-charter, stakeholder-register, risk-register, status-report, meeting-minutes, lessons-learned, business-plan, sales-battle-card, competitive-brief, ifu-comparison, decision-log, press-release, investor-update, onboarding-doc, srd, srs, hrs, risk-brainstorm. Profile-aware — medical-device-only docs (risk-register, ifu-comparison, risk-brainstorm) reject non-medical-device vaults. All output is idempotent and lands under <vault>/exports/.
 ---
 
 # doc-generate
@@ -15,22 +15,44 @@ You do not write document content by hand. The generators read the schema, pull 
 2. **Run `cb validate --path <vault>` first.** A vault with errors will still render, but uncited claims and broken edges will surface in the output. If validate reports errors, tell the user and offer to fix them via `intake` or `atomize` before generating.
 3. **Confirm the active profile.** Run `cb describe-profile --path <vault>` to know whether medical-device-only sections will appear. The profile decides which sections render.
 
-## What ships in v0.3.0
+## What ships today (21 generators)
 
-| Document | Markdown | HTML | DOCX | Status |
+### Full implementations (v0.3.0)
+
+| Document | Markdown | HTML | DOCX | Profile |
 |---|:-:|:-:|:-:|---|
-| Marketing Requirements Document (MRD) | ✅ | ✅ | ✅ | Full |
-| One-pager | ✅ | ✅ | — | Full |
-| PID (Project Initiation Document) | | | | Scaffold in v0.4.0 |
-| Business Plan | | | | Scaffold in v0.4.0 |
-| Sales battle card (per competitor) | | | | Scaffold in v0.4.0 |
-| Competitive brief | | | | Scaffold in v0.4.0 |
-| IFU comparison report (med-device) | | | | Scaffold in v0.4.0 |
-| Decision log / ADR roll-up | | | | Scaffold in v0.4.0 |
-| Risk brainstorm (med-device) | | | | Scaffold in v0.4.0 |
-| 11 more PMBOK / engineering doc types | | | | Scaffold in v0.4.0 |
+| Marketing Requirements Document (MRD) | ✅ | ✅ | ✅ | all |
+| One-pager | ✅ | ✅ | — | all |
 
-The one-pager does **not** ship a docx writer (PRD §11 — a one-page leave-behind is better as markdown or html). All other v0.4.0 scaffolds will support markdown at minimum.
+### Scaffolds (v0.4.0)
+
+Runnable templates that query the right typed nodes, fill in what they can, and flag the output as a scaffold in the footer. Adopters fill in the placeholders by hand. Full per-doc implementations land in v1.x.
+
+| Document | CLI name | Profile | Length norm |
+|---|---|---|---|
+| PID (Project Initiation Document) | `pid` | all | 2–4 pages |
+| Project charter | `project-charter` | all | 1 page |
+| Stakeholder register | `stakeholder-register` | all | 1–2 pages (table) |
+| Risk register (planning) | `risk-register` | **medical-device** | 1–3 pages |
+| Status report | `status-report` | all | 1 page |
+| Meeting minutes | `meeting-minutes` | all | 1 page (not 12) |
+| Lessons learned / close-out | `lessons-learned` | all | 1–2 pages |
+| Business plan | `business-plan` | all | 8–15 pages |
+| Sales battle card (per competitor) | `sales-battle-card` | all | 1–2 pages |
+| Competitive brief | `competitive-brief` | all | 3–5 pages |
+| IFU comparison report | `ifu-comparison` | **medical-device** | 2–4 pages |
+| Decision log / ADR roll-up | `decision-log` | all | 1–10 pages |
+| Press release / launch | `press-release` | all | 1 page |
+| Investor update | `investor-update` | all | 1–2 pages |
+| Onboarding doc | `onboarding-doc` | all | 3–6 pages |
+| System Requirements Document (SRD) | `srd` | all | 5–15 pages |
+| Software Requirements Specification (SRS) | `srs` | all | 5–20 pages |
+| Hardware Requirements Specification (HRS) | `hrs` | all | 5–20 pages |
+| Risk brainstorm | `risk-brainstorm` | **medical-device** | 2–4 pages |
+
+Scaffolds support **markdown** and **html** formats. Docx and xlsx ship per-doc with the v1.x full implementations.
+
+The one-pager does **not** ship a docx writer (PRD §11 — a one-page leave-behind is better as markdown or html).
 
 ## Rendering
 
@@ -57,6 +79,41 @@ cb render one-pager --format html                  # HTML     → <vault>/export
 ```
 
 The one-pager picks: the first product by id, the highest-confidence positive pillar (non-goal-excluded), the first persona, the feature most related to the primary product, and the first customer-interview source. When any of those is missing, the section degrades to a hint like "Run `intake persona` to define one."
+
+### Scaffolds
+
+Every scaffold follows the same shape: `cb render <doc-name> [--format markdown|html]`. Each lands under `<vault>/exports/<doc-name>.<ext>` by default.
+
+```bash
+cb render pid                                      # → <vault>/exports/pid.md
+cb render project-charter
+cb render stakeholder-register
+cb render risk-register                            # medical-device only
+cb render status-report
+cb render meeting-minutes
+cb render lessons-learned
+cb render business-plan
+cb render sales-battle-card                        # → sales-battle-card-<first-competitor-id>.md
+cb render sales-battle-card --competitor competitor-pulseguard-medical
+cb render competitive-brief
+cb render ifu-comparison                           # medical-device only
+cb render decision-log
+cb render press-release
+cb render investor-update
+cb render onboarding-doc
+cb render srd
+cb render srs
+cb render hrs
+cb render risk-brainstorm                          # medical-device only
+```
+
+**Scaffold conventions:**
+- Each output ends with the line: _"v0.4.0 scaffold — full implementation pending in v1.x. Adopters: fill in the placeholders below and re-run `cb render`."_
+- Sections that have populated typed nodes (e.g. `stakeholder-register` finds `stakeholder` nodes) render real content with `[node-id]` citations.
+- Sections that have no inputs degrade to bracketed placeholders for adopters to fill in, with a hint pointing at the right `intake` sub-mode.
+- Medical-device-only scaffolds (`risk-register`, `ifu-comparison`, `risk-brainstorm`) raise a clear error when invoked under any other profile.
+- The sales-battle-card is **per-competitor** — without `--competitor`, the first competitor by id is chosen and embedded in the output filename so multiple cards can coexist.
+- Scaffolds support **markdown** and **html**. Docx and xlsx ship per-doc with the v1.x full implementations.
 
 ## What this skill does NOT do
 

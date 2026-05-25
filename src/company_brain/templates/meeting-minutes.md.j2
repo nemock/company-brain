@@ -1,0 +1,43 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+> **Intentionally abbreviated against the PMBOK 12-page meeting-minutes standard.** This is a planning summary, not a transcript.
+
+{% if meeting_source %}
+## Source
+
+{{ meeting_source.cite }} _{{ meeting_source.source_kind }}_ — {{ meeting_source.title }}
+
+{{ meeting_source.summary }}
+{% else %}
+## Source
+
+_No customer-interview or internal-data source found. Run `intake meeting-notes` to capture one, then re-render._
+{% endif %}
+
+## Attendees
+
+_[Adopters: list attendees and their role.]_
+
+## Decisions made
+
+_[Adopters: list each decision with a one-line rationale. Promote durable ones to `decision` nodes via `intake`.]_
+
+## Action items
+
+_[Adopters: action / owner / due date.]_
+
+## Open items
+
+_[Adopters: items deferred to follow-up. Promote to `question` nodes when worth tracking.]_
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · meeting-minutes scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

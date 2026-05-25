@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Initiation Document</title>
+  <style>
+    :root {
+      --cb-primary: #1f3a5f;
+      --cb-secondary: #3b82c4;
+      --cb-accent: #10b981;
+      --cb-text: #1f2937;
+      --cb-background: #ffffff;
+      --cb-muted: #9ca3af;
+    }
+    html { background: var(--cb-background); color: var(--cb-text); }
+    body {
+      max-width: 820px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      font-family: Source Serif Pro, Georgia, serif;
+      line-height: 1.55;
+    }
+    h1, h2, h3, h4 {
+      font-family: Inter, Helvetica Neue, Arial, sans-serif;
+      color: var(--cb-primary);
+      line-height: 1.25;
+    }
+    h1 { border-bottom: 2px solid var(--cb-primary); padding-bottom: 0.4rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid var(--cb-muted); padding-bottom: 0.2rem; }
+    h3 { margin-top: 1.5rem; color: var(--cb-secondary); }
+    a { color: var(--cb-secondary); }
+    blockquote {
+      border-left: 4px solid var(--cb-accent);
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      background: rgba(0, 0, 0, 0.025);
+      color: var(--cb-text);
+    }
+    code { background: rgba(0, 0, 0, 0.05); padding: 0.1rem 0.3rem; border-radius: 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+    }
+    th, td { border: 1px solid var(--cb-muted); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: var(--cb-primary); color: var(--cb-background); }
+    hr { border: 0; border-top: 1px solid var(--cb-muted); margin: 2rem 0; }
+    footer { margin-top: 2rem; color: var(--cb-muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+<h1>Project Initiation Document</h1>
+<blockquote>
+<p>Vault: <code>/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/meddev-fictional</code> · Profile: <code>medical-device</code></p>
+</blockquote>
+<blockquote>
+<p><em>v0.4.0 scaffold — full implementation pending in v1.x. Adopters: fill in the placeholders below and re-run <code>cb render</code>.</em></p>
+</blockquote>
+<h2>1. Purpose</h2>
+<p><em>[Adopters: state the project's purpose in 1–2 sentences. The pillars below should anchor it.]</em></p>
+<p>Governing pillars:</p>
+<ul>
+<li>[pillar-disposable-pad-business-model] <strong>Disposable Pad as the Recurring-Revenue Engine</strong> — The Vitalisens Pad is a 7-day replaceable disposable; recurring pad revenue, not the wearable, is the long-term unit economic.</li>
+<li>[pillar-icp-ambulatory-cardiac-patients] <strong>ICP: Adult Ambulatory Cardiac Patients</strong> — We serve adult cardiac patients in ambulatory settings during the 7- to 30-day window after a cardiac event or during arrhythmia workup.</li>
+<li>[pillar-no-pediatric-use] <strong>Non-Goal: We Do Not Pursue Pediatric Use</strong> — Vitalisens will not pursue indications, labeling, marketing, or clinical claims for pediatric patients (under 18) in v1 or v2 of the product.</li>
+<li>[pillar-no-physical-documentation] <strong>Non-Goal: No Physical Documentation</strong> — Vitalisens does not produce printed IFU, printed quick-start cards, printed user manuals, or printed in-box collateral. All documentation is online.</li>
+</ul>
+<h2>2. Scope</h2>
+<p><em>[Adopters: define in-scope and out-of-scope. Reference any non-goal pillars from the decision-log section below.]</em></p>
+<p>Products in scope:</p>
+<ul>
+<li>[product-vitalisens-cardio] <strong>Vitalisens Cardio</strong> — Adult ambulatory cardiac telemetry wearable; continuous ECG capture, Bluetooth uplink to clinician app, 7-day pad cycle.</li>
+<li>[product-vitalisens-pad] <strong>Vitalisens Pad</strong> — 7-day single-use adhesive sensor pad; couples patient skin to the Vitalisens Cardio wearable; the recurring-revenue consumable.</li>
+</ul>
+<h2>3. Key stakeholders</h2>
+<ul>
+<li>[stakeholder-cardiology-program-director] <strong>Stakeholder: Cardiology Program Director (buying decision maker)</strong> — The cardiology program director at a multi-site practice; signs MCT vendor contracts and owns the patient-monitoring SLA.</li>
+</ul>
+<h2>4. Success criteria</h2>
+<p><em>[Adopters: list 3–5 measurable success criteria. Tie each to a decision or a pillar.]</em></p>
+<p>Decisions on file that shape success criteria:</p>
+<ul>
+<li>[decision-001-online-only-documentation] <strong>Decision 001: Online-Only Documentation</strong> — All Vitalisens documentation (IFU, user manual, quick-start, clinician guide) is electronic only. No printed inserts ship with any product.</li>
+<li>[decision-002-prescription-only-not-otc] <strong>Decision 002: Prescription-Only, Not Over-the-Counter</strong> — Vitalisens will be sold by prescription only (Rx). We will not pursue over-the-counter (OTC) labeling, packaging, or distribution in v1 or v2.</li>
+<li>[decision-003-7-day-wear-not-14-day] <strong>Decision 003: 7-Day Pad Wear Time</strong> — Vitalisens Pad is rated for 7 days of continuous wear. We will not pursue a 14-day variant in v1.</li>
+</ul>
+<h2>5. Risks</h2>
+<ul>
+<li>[risk-insight-pad-adhesion-failure-affects-data-quality] <strong>Risk Insight: Pad Adhesion Failure Cascades into Data-Quality Failure</strong> — Pad adhesion failure does not just lose signal — it tends to fail silently, producing noisy data that looks plausible. Detection matters as much as prevention.</li>
+</ul>
+<h2>6. Milestones</h2>
+<p><em>[Adopters: outline 3–6 milestones with target dates. v0.4.0 has no milestone node type; lessons-learned and project-charter cover related lifecycle data.]</em></p>
+<hr />
+<blockquote>
+<p>This is a planning artifact. It is not a controlled document and is not part of any design history file, risk management file, or traceability matrix per ISO 14971, IEC 62304, or 21 CFR 820.</p>
+</blockquote>
+<p><em>company-brain v0.3.0 · PID scaffold generated 2026-05-25 from vault at <code>/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/meddev-fictional</code>.</em></p>
+
+</body>
+</html>

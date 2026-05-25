@@ -1,0 +1,62 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## TL;DR
+
+_[Adopters: 3 bullets — what shipped, what changed in the numbers, what's next.]_
+
+## Metrics this period
+
+{% if fact_snapshots %}
+{% for f in fact_snapshots %}
+- {{ f.cite }} **{{ f.title }}** — {{ f.summary }} _(verified {{ f.verified_at }})_
+{% endfor %}
+{% else %}
+_No metric snapshots in this vault. Capture some via `intake metric`._
+{% endif %}
+
+## What shipped
+
+{% if decisions %}
+Decisions made:
+{% for d in decisions %}
+- {{ d.cite }} **{{ d.title }}** — {{ d.summary }}
+{% endfor %}
+{% else %}
+_No decisions captured._
+{% endif %}
+
+## What's next
+
+_[Adopters: 3–5 bullets on the next reporting window.]_
+
+## Asks
+
+_[Adopters: introductions, hiring, advice the round needs.]_
+
+## Open risks and questions
+
+{% if risk_insights %}
+Risk insights:
+{% for r in risk_insights %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% endif %}
+
+{% if questions %}
+Open questions:
+{% for q in questions %}
+- {{ q.cite }} {{ q.title }}
+{% endfor %}
+{% endif %}
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · investor-update scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

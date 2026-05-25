@@ -1,0 +1,54 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## Comparison matrix (latest IFU per product)
+
+{% if ifu_rows %}
+| Product | Population | Condition | Intervention | Setting |
+|---|---|---|---|---|
+{% for row in ifu_rows %}
+| {{ row.product_title }} [{{ row.latest.id }}] | {{ row.latest.population }} | {{ row.latest.condition }} | {{ row.latest.intervention }} | {{ row.latest.setting }} |
+{% endfor %}
+{% else %}
+_No indication-for-use nodes in this vault. Run `intake competitor-ifu` to add them._
+{% endif %}
+
+## IFU evolution chains
+
+{% for row in ifu_rows %}
+### {{ row.product_title }}
+
+{% if row.chain_ids|length > 1 %}
+Chain: {% for cid in row.chain_ids %}[{{ cid }}]{% if not loop.last %} → {% endif %}{% endfor %}
+{% else %}
+_Single IFU on file. Capture prior versions via `intake competitor-ifu` with `preceded_by` edges to build the chain._
+{% endif %}
+
+{% endfor %}
+
+## Clearances on file
+
+{% if clearances %}
+{% for c in clearances %}
+- {{ c.cite }} **{{ c.title }}** — {{ c.summary }}
+{% endfor %}
+{% else %}
+_No regulatory-clearance nodes captured._
+{% endif %}
+
+## Gaps and differentiation opportunities
+
+_[Adopters: where do we have IFU breadth competitors don't, or vice versa? Where are predicate-citation opportunities?]_
+
+## Predicate-citation candidates for our planned clearances
+
+_[Adopters: from the clearances above, which ones make plausible predicates for our planned filings?]_
+
+---
+
+{{ meta.controlled_document_footer }}
+
+_company-brain v{{ meta.cb_version }} · ifu-comparison scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

@@ -1,0 +1,74 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## 1. Purpose
+
+_[Adopters: state the project's purpose in 1–2 sentences. The pillars below should anchor it.]_
+
+{% if pillars %}
+Governing pillars:
+{% for p in pillars %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% else %}
+_No pillars captured yet. Run `intake vision` first._
+{% endif %}
+
+## 2. Scope
+
+_[Adopters: define in-scope and out-of-scope. Reference any non-goal pillars from the decision-log section below.]_
+
+{% if products %}
+Products in scope:
+{% for product in products %}
+- {{ product.cite }} **{{ product.title }}** — {{ product.summary }}
+{% endfor %}
+{% else %}
+_No product nodes yet. Run `intake product`._
+{% endif %}
+
+## 3. Key stakeholders
+
+{% if stakeholders %}
+{% for s in stakeholders %}
+- {{ s.cite }} **{{ s.title }}** — {{ s.summary }}
+{% endfor %}
+{% else %}
+_No stakeholders captured. Run `intake` and add stakeholder nodes._
+{% endif %}
+
+## 4. Success criteria
+
+_[Adopters: list 3–5 measurable success criteria. Tie each to a decision or a pillar.]_
+
+{% if decisions %}
+Decisions on file that shape success criteria:
+{% for d in decisions %}
+- {{ d.cite }} **{{ d.title }}** — {{ d.summary }}
+{% endfor %}
+{% endif %}
+
+## 5. Risks
+
+{% if risk_insights %}
+{% for r in risk_insights %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% else %}
+_No risk-insights captured. Run `intake risk` for ISO 14971-vocabulary risk thinking (medical-device profile)._
+{% endif %}
+
+## 6. Milestones
+
+_[Adopters: outline 3–6 milestones with target dates. v0.4.0 has no milestone node type; lessons-learned and project-charter cover related lifecycle data.]_
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · PID scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

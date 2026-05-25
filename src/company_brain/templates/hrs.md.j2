@@ -1,0 +1,69 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## 1. Scope
+
+_[Adopters: 1–2 paragraphs. What hardware does this specify?]_
+
+## 2. Hardware architecture overview
+
+_[Adopters: 2–3 paragraphs describing major modules, mechanical, electrical, and integration boundaries.]_
+
+## 3. Functional requirements (hardware class)
+
+{% if requirements %}
+{% for r in requirements %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% else %}
+_No hardware-class requirements captured. Run `intake` and add requirement nodes with `requirement_class: hardware`._
+{% endif %}
+
+## 4. Performance / environmental / mechanical requirements
+
+_[Adopters: temperature range, humidity, ingress protection, drop, vibration, EMC, battery life, weight, thermal.]_
+
+## 5. External interfaces
+
+_[Adopters: physical connectors, mounting interfaces, host-system attachment, packaging.]_
+
+{% if features %}
+## 6. Features in scope
+
+{% for f in features %}
+- {{ f.cite }} **{{ f.title }}** — {{ f.summary }}
+{% endfor %}
+{% endif %}
+
+{% if use_cases %}
+## 7. Use cases
+
+{% for u in use_cases %}
+- {{ u.cite }} **{{ u.title }}** — {{ u.summary }}
+{% endfor %}
+{% endif %}
+
+## 8. Hardware-specific risks
+
+{% if risk_insights %}
+{% for r in risk_insights %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% else %}
+_No risk-insight nodes captured._
+{% endif %}
+
+## Traceability
+
+_[Adopters: trace each hardware requirement back to a system requirement and forward to a verification activity.]_
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · hrs scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

@@ -1,0 +1,31 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## Register
+
+{% if stakeholders %}
+| Stakeholder | Role / context | Influence | Interest | Communication preference | Notes |
+|---|---|---|---|---|---|
+{% for s in stakeholders %}
+| {{ s.cite }} **{{ s.title }}** | {{ s.summary }} | _[high/med/low]_ | _[high/med/low]_ | _[email / standup / weekly 1:1 / async]_ | _[adopters: notes]_ |
+{% endfor %}
+{% else %}
+_No stakeholders captured yet. Run `intake` and add stakeholder nodes._
+{% endif %}
+
+## How to use this register
+
+- Update **Influence** and **Interest** before each major decision so the right people see the right material.
+- Update **Communication preference** as relationships evolve.
+- Re-run `cb render stakeholder-register` after capturing new stakeholders.
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · stakeholder-register scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

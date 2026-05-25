@@ -1,0 +1,43 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## Active decisions
+
+{% if decisions %}
+{% for d in decisions %}
+### {{ d.title }} {{ d.cite }}
+
+**Namespace:** `{{ d.namespace }}` · **Confidence:** {{ d.confidence }} · **Verified:** {{ d.verified_at }}
+
+{{ d.summary }}
+
+{% if d.rules_out %}
+**Rules out:**
+
+{{ d.rules_out }}
+{% endif %}
+
+{% endfor %}
+{% else %}
+_No decisions captured yet._
+{% endif %}
+
+{% if non_goal_pillars %}
+
+## Non-goal pillars (durable boundaries)
+
+{% for p in non_goal_pillars %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% endif %}
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · decision-log scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

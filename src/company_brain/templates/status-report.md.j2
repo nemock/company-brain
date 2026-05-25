@@ -1,0 +1,61 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## What shipped
+
+_[Adopters: 2–4 bullets on what landed in this reporting window. v0.4.0 scaffold has no date filter; full implementation in v1.x will window by `verified_at`.]_
+
+## Key facts (metric snapshots)
+
+{% if facts %}
+{% for f in facts %}
+- {{ f.cite }} **{{ f.title }}** — {{ f.summary }} _(verified {{ f.verified_at }})_
+{% endfor %}
+{% else %}
+_No fact snapshots yet. Capture metric snapshots via `intake metric`._
+{% endif %}
+
+## Decisions made
+
+{% if decisions %}
+{% for d in decisions %}
+- {{ d.cite }} **{{ d.title }}** — {{ d.summary }}
+{% endfor %}
+{% else %}
+_No decisions captured yet._
+{% endif %}
+
+## Open questions
+
+{% if questions %}
+{% for q in questions %}
+- {{ q.cite }} {{ q.title }}
+{% endfor %}
+{% else %}
+_No open questions captured._
+{% endif %}
+
+## Patterns observed
+
+{% if patterns %}
+{% for p in patterns %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% else %}
+_No patterns captured yet._
+{% endif %}
+
+## What's next
+
+_[Adopters: 2–4 bullets on next steps. Reference decisions or questions above.]_
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · status-report scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

@@ -1,0 +1,70 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+**FOR IMMEDIATE RELEASE**
+
+_[Adopters: dateline (city, date).]_
+
+{% if product %}
+## {{ product.title }}
+
+{{ product.summary }} {{ product.cite }}
+{% else %}
+_[Adopters: headline + sub-headline.]_
+
+_No product node found in the vault. Run `intake product` to capture one._
+{% endif %}
+
+## Lead paragraph
+
+_[Adopters: 2–3 sentences giving who, what, why, when.]_
+
+{% if ifu %}
+## Indication for use
+
+- **Population:** {{ ifu.population }}
+- **Condition:** {{ ifu.condition }}
+- **Intervention:** {{ ifu.intervention }}
+- **Setting:** {{ ifu.setting }}
+
+({{ ifu.cite }})
+{% endif %}
+
+{% if clearance %}
+## Regulatory status
+
+Cleared under {{ clearance.cite }} **{{ clearance.title }}** — {{ clearance.summary }}
+{% endif %}
+
+{% if supporting_source %}
+## Supporting quote / context
+
+_{{ supporting_source.summary }}_
+
+— {{ supporting_source.cite }} _{{ supporting_source.source_kind }}_
+{% else %}
+## Supporting quote / context
+
+_[Adopters: pull a quote from a customer-interview or strategic-thesis source. Run `intake meeting-notes` if you don't have one yet.]_
+{% endif %}
+
+{% if pillar %}
+## Why it matters
+
+{{ pillar.summary }} — {{ pillar.cite }}
+{% endif %}
+
+## About the company
+
+_[Adopters: 2–3 sentences. Contact info.]_
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · press-release scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

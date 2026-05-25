@@ -42,7 +42,13 @@ from .maintain import (
     repair as maintain_repair,
 )
 from .query_helpers import NodeNotFoundError, get_node, list_nodes
-from .render import render_mrd, render_one_pager
+from .render import (
+    ScaffoldProfileError,
+    list_scaffold_names,
+    render_mrd,
+    render_one_pager,
+    render_scaffold,
+)
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
 from .schema import PROFILE_SPECS
 from .validator import VaultNotFoundError, summarize, validate
@@ -385,8 +391,12 @@ def extract_command(
     typer.echo(text, nl=False)
 
 
-_RENDER_DOC_CHOICES = ("mrd", "one-pager")
+_RENDER_FIRST_CLASS = ("mrd", "one-pager")
 _RENDER_FORMAT_CHOICES = ("markdown", "html", "docx")
+
+
+def _all_render_choices() -> tuple[str, ...]:
+    return _RENDER_FIRST_CLASS + tuple(list_scaffold_names())
 
 
 @app.command("render")
@@ -394,7 +404,14 @@ def render_command(
     doc: str = typer.Argument(
         ...,
         metavar="DOC",
-        help=f"Document to render. One of: {', '.join(_RENDER_DOC_CHOICES)}.",
+        help=(
+            "Document to render. v0.3.0 first-class: mrd, one-pager. v0.4.0 "
+            "scaffolds: pid, project-charter, stakeholder-register, "
+            "risk-register, status-report, meeting-minutes, lessons-learned, "
+            "business-plan, sales-battle-card, competitive-brief, "
+            "ifu-comparison, decision-log, press-release, investor-update, "
+            "onboarding-doc, srd, srs, hrs, risk-brainstorm."
+        ),
     ),
     path: Path = typer.Option(
         Path("."),
@@ -417,7 +434,16 @@ def render_command(
         "-f",
         help=(
             f"Output format. One of: {', '.join(_RENDER_FORMAT_CHOICES)}. "
-            "The one-pager doesn't support docx (use markdown or html)."
+            "Scaffolds support markdown and html only (docx + xlsx land "
+            "with the v1.x full implementations). One-pager doesn't support docx."
+        ),
+    ),
+    competitor_id: str | None = typer.Option(
+        None,
+        "--competitor",
+        help=(
+            "For the sales-battle-card scaffold: the competitor node id to "
+            "render against. Defaults to the first competitor by id."
         ),
     ),
     date_override: str | None = typer.Option(
@@ -431,13 +457,16 @@ def render_command(
 ) -> None:
     """Render a planning document from the vault.
 
-    v0.3.0 ships the MRD generator (markdown/html/docx) and the one-pager
-    generator (markdown/html). The 19 scaffolded generators land in v0.4.0.
+    v0.3.0 ships full MRD (markdown/html/docx) and one-pager (markdown/html).
+    v0.4.0 ships 19 scaffolded generators for PID, business plan, sales
+    battle card, decision log, SRD/SRS/HRS, etc. — runnable templates with
+    typed-node citations and `_scaffold_` footer flags that adopters fill in.
     """
 
-    if doc not in _RENDER_DOC_CHOICES:
+    choices = _all_render_choices()
+    if doc not in choices:
         typer.secho(
-            f"error: unknown doc '{doc}'. One of: {', '.join(_RENDER_DOC_CHOICES)}.",
+            f"error: unknown doc '{doc}'. Known: {', '.join(choices)}.",
             fg=typer.colors.RED,
             err=True,
         )
@@ -465,11 +494,13 @@ def render_command(
             )
             raise typer.Exit(code=2) from exc
 
+    out_resolved = out.resolve() if out is not None else None
+
     try:
         if doc == "mrd":
             result = render_mrd(
                 path.resolve(),
-                output_path=out.resolve() if out is not None else None,
+                output_path=out_resolved,
                 generation_date=gen_date,
                 write=True,
                 output_format=output_format,
@@ -485,14 +516,41 @@ def render_command(
                 raise typer.Exit(code=2)
             result = render_one_pager(
                 path.resolve(),
-                output_path=out.resolve() if out is not None else None,
+                output_path=out_resolved,
                 generation_date=gen_date,
                 write=True,
                 output_format=output_format,
             )
-        else:  # pragma: no cover - guarded by the choice check above
-            raise typer.Exit(code=2)
+        else:
+            # Scaffold path.
+            if output_format == "docx":
+                typer.secho(
+                    f"error: scaffolds don't yet ship docx output ('{doc}'). "
+                    "Use --format markdown or --format html. Full docx support "
+                    "lands with the v1.x full implementations.",
+                    fg=typer.colors.RED,
+                    err=True,
+                )
+                raise typer.Exit(code=2)
+            options: dict[str, str] = {}
+            if competitor_id is not None:
+                options["competitor_id"] = competitor_id
+            result = render_scaffold(
+                doc,
+                path.resolve(),
+                output_path=out_resolved,
+                generation_date=gen_date,
+                write=True,
+                output_format=output_format,
+                options=options,
+            )
     except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    except ScaffoldProfileError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    except ValueError as exc:
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
 

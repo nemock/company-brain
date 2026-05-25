@@ -1,0 +1,71 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## 1. Scope
+
+_[Adopters: 1–2 paragraphs. What system does this document specify? What is in / out of scope?]_
+
+## 2. System overview
+
+_[Adopters: 2–3 paragraph overview. Reference the products and features below.]_
+
+## 3. Functional requirements (system class)
+
+{% if requirements %}
+{% for r in requirements %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% else %}
+_No system-class requirements captured. Run `intake` and add requirement nodes with `requirement_class: system`._
+{% endif %}
+
+## 4. Non-functional requirements
+
+_[Adopters: performance, reliability, maintainability, scalability. v0.4.0 scaffold doesn't auto-extract these.]_
+
+## 5. Interfaces
+
+_[Adopters: external interfaces, integration points.]_
+
+## 6. Constraints
+
+_[Adopters: regulatory, environmental, technical constraints.]_
+
+{% if features %}
+## 7. Features in scope
+
+{% for f in features %}
+- {{ f.cite }} **{{ f.title }}** — {{ f.summary }}
+{% endfor %}
+{% endif %}
+
+{% if use_cases %}
+## 8. Use cases
+
+{% for u in use_cases %}
+- {{ u.cite }} **{{ u.title }}** — {{ u.summary }}
+{% endfor %}
+{% endif %}
+
+{% if risk_insights %}
+## 9. System-level risks
+
+{% for r in risk_insights %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% endif %}
+
+## Traceability
+
+_[Adopters: trace each system requirement back to the user or market requirement it serves.]_
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · srd scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

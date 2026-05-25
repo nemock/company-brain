@@ -1,0 +1,64 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+> **This is a planning register, not a controlled risk management file per ISO 14971.**
+> The controlled file is a separate artifact created under your QMS.
+
+## Hazards under consideration
+
+{% if hazards %}
+{% for h in hazards %}
+- {{ h.cite }} **{{ h.title }}** — {{ h.summary }}
+{% endfor %}
+{% else %}
+_No hazards captured. Run `intake risk`._
+{% endif %}
+
+## Hazardous situations
+
+{% if hazardous_situations %}
+{% for h in hazardous_situations %}
+- {{ h.cite }} **{{ h.title }}** — {{ h.summary }}
+{% endfor %}
+{% else %}
+_No hazardous situations captured._
+{% endif %}
+
+## Potential harms
+
+{% if harms %}
+{% for h in harms %}
+- {{ h.cite }} **{{ h.title }}** — {{ h.summary }}
+{% endfor %}
+{% else %}
+_No harms captured._
+{% endif %}
+
+## Candidate risk-control ideas
+
+{% if risk_control_ideas %}
+{% for r in risk_control_ideas %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% else %}
+_No risk-control ideas captured yet._
+{% endif %}
+
+## Risk insights
+
+{% if risk_insights %}
+{% for r in risk_insights %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% else %}
+_No risk insights captured yet. The risk-brainstorm scaffold goes deeper on this._
+{% endif %}
+
+---
+
+{{ meta.controlled_document_footer }}
+
+_company-brain v{{ meta.cb_version }} · risk-register scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

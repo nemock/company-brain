@@ -1,0 +1,51 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## Purpose
+
+{% if primary_pillar %}
+This project advances {{ primary_pillar.cite }} **{{ primary_pillar.title }}** — {{ primary_pillar.summary }}.
+{% else %}
+_[Adopters: state the primary pillar this project supports.]_
+{% endif %}
+
+## Sponsor
+
+_[Adopters: name the executive sponsor.]_
+
+## Objectives
+
+_[Adopters: 3–5 SMART objectives, each tied to a measurable outcome.]_
+
+## Scope
+
+_[Adopters: in-scope and out-of-scope statements. Cite any non-goal pillars.]_
+
+## Constraints
+
+_[Adopters: budget, timeline, regulatory, team-availability constraints.]_
+
+## Success criteria
+
+_[Adopters: how will we know this project succeeded? Reference metric nodes when available.]_
+
+## Stakeholders
+
+{% if stakeholders %}
+{% for s in stakeholders %}
+- {{ s.cite }} **{{ s.title }}** — {{ s.summary }}
+{% endfor %}
+{% else %}
+_No stakeholders captured yet. Run `intake` and add stakeholder nodes._
+{% endif %}
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · project-charter scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

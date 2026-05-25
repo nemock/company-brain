@@ -1,0 +1,75 @@
+# {{ meta.doc_title }}{% if competitor %} — vs. {{ competitor.title }}{% endif %}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+{% if competitor %}
+
+## Competitor at a glance
+
+- **Name:** {{ competitor.title }} {{ competitor.cite }}
+{% if competitor.canonical_url %}
+- **URL:** {{ competitor.canonical_url }}
+{% endif %}
+- **Summary:** {{ competitor.summary }}
+{% if competitor.related_ifus %}
+- **IFU history:** {% for ifu_id in competitor.related_ifus %}[{{ ifu_id }}]{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+{% if competitor.related_clearances %}
+- **Clearances:** {% for cid in competitor.related_clearances %}[{{ cid }}]{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+
+## What they sell
+
+_[Adopters: 2–3 sentences on the competitor's positioning and product line.]_
+
+## Where they're strong
+
+_[Adopters: 3–5 strengths from public signals. Reference any web-snapshot or press-release sources by node id.]_
+
+## Where we win
+
+{% if pillars_positive %}
+Our governing pillars say:
+{% for p in pillars_positive %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% else %}
+_No positive pillars captured yet. Run `intake vision`._
+{% endif %}
+
+## Common objections and how to handle
+
+_[Adopters: 3–5 objection / response pairs. Promote durable ones to `decision` or `pillar` nodes.]_
+
+## Talking points to AVOID
+
+{% if pillars_non_goal %}
+Our non-goal pillars rule out the following claims — don't make them in sales conversations:
+{% for p in pillars_non_goal %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% endif %}
+
+{% if rules_out_decisions %}
+**Decisions and what they rule out:**
+{% for d in rules_out_decisions %}
+- {{ d.cite }} **{{ d.title }}**
+{{ d.rules_out }}
+{% endfor %}
+{% endif %}
+
+{% else %}
+## No competitor captured
+
+_No competitor nodes in this vault. Run `intake competitor` to add one, then re-render with `--competitor <id>`._
+{% endif %}
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · sales-battle-card scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

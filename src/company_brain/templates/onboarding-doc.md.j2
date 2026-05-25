@@ -1,0 +1,80 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## Welcome
+
+_[Adopters: welcome paragraph, 2–3 sentences.]_
+
+## What we do
+
+_[Adopters: company purpose in 2–3 sentences.]_
+
+## Who we serve
+
+{% if persona %}
+- Primary persona: {{ persona.cite }} **{{ persona.title }}** — {{ persona.summary }}
+{% endif %}
+{% if customer %}
+- First named customer: {{ customer.cite }} {{ customer.title }} — {{ customer.summary }}
+{% endif %}
+{% if not persona and not customer %}
+_No persona or customer captured yet. Run `intake persona` and `intake meeting-notes`._
+{% endif %}
+
+## Principles new hires should know
+
+{% if auto_injecting_pillars %}
+{% for p in auto_injecting_pillars %}
+### {{ p.title }} {{ p.cite }}
+
+{{ p.summary }}
+
+{% endfor %}
+{% else %}
+_No auto-injecting pillars yet. Run `intake vision` to define them._
+{% endif %}
+
+## Key decisions
+
+{% if key_decisions %}
+{% for d in key_decisions %}
+- {{ d.cite }} **{{ d.title }}** — {{ d.summary }}
+{% endfor %}
+{% else %}
+_No decisions captured yet._
+{% endif %}
+
+## What we are NOT doing
+
+{% if non_goal_pillars %}
+{% for p in non_goal_pillars %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% else %}
+_No non-goal pillars captured yet. The vision-intake anti-decision sweep is the right place to surface these._
+{% endif %}
+
+## Glossary
+
+{% if concepts %}
+{% for c in concepts %}
+- {{ c.cite }} **{{ c.title }}** — {{ c.summary }}
+{% endfor %}
+{% else %}
+_No concept nodes captured yet. Run `intake` and capture key terms as concept nodes._
+{% endif %}
+
+## Who to talk to
+
+_[Adopters: list 3–5 people new hires should meet in their first week and what each is the expert on.]_
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · onboarding-doc scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

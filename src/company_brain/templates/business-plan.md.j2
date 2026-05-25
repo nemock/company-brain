@@ -1,0 +1,107 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## 1. Executive summary
+
+_[Adopters: 1–2 paragraph executive summary. Anchor on the pillars below.]_
+
+## 2. Company overview
+
+_[Adopters: company name, mission, founding context.]_
+
+{% if pillars_positive %}
+Governing pillars:
+{% for p in pillars_positive %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% endif %}
+
+## 3. Market analysis
+
+{% if personas or customers %}
+**Personas and customer references:**
+
+{% for p in personas %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% for c in customers %}
+- {{ c.cite }} {{ c.title }} — {{ c.summary }}
+{% endfor %}
+{% else %}
+_No personas or customers captured yet._
+{% endif %}
+
+{% if competitors %}
+
+**Competitive landscape:**
+{% for c in competitors %}
+- {{ c.cite }} **{{ c.title }}** — {{ c.summary }}
+{% endfor %}
+{% endif %}
+
+## 4. Product
+
+{% if products %}
+{% for product in products %}
+- {{ product.cite }} **{{ product.title }}** — {{ product.summary }}
+{% endfor %}
+{% else %}
+_No product nodes yet._
+{% endif %}
+
+## 5. Business model
+
+_[Adopters: how does the company make money? Reference the pricing-related pillars above.]_
+
+## 6. Go-to-market
+
+_[Adopters: channel, sales motion, pricing, lifecycle. Reference market requirements below.]_
+
+{% if market_requirements %}
+Market requirements on file:
+{% for r in market_requirements %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% endif %}
+
+## 7. Financials (skeleton)
+
+_[Adopters: revenue projection, cost structure, runway. v0.4.0 scaffold doesn't auto-extract — fill in.]_
+
+{% if metrics %}
+Metrics defined in the vault:
+{% for m in metrics %}
+- {{ m.cite }} **{{ m.title }}** — {{ m.summary }}
+{% endfor %}
+{% endif %}
+
+## 8. Team
+
+_[Adopters: founders, key hires, advisors, gaps.]_
+
+## 9. Risks
+
+_[Adopters: market, execution, regulatory, financing risks. Reference risk-insight nodes when available.]_
+
+## 10. Milestones
+
+_[Adopters: 6–12 month and 12–24 month milestones with go/no-go criteria.]_
+
+{% if pillars_non_goal %}
+## 11. What we are explicitly not doing
+
+{% for p in pillars_non_goal %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% endif %}
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · business-plan scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

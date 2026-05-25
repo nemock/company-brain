@@ -1,0 +1,60 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## What worked
+
+_[Adopters: 3–5 bullets on what worked, citing patterns and hypotheses confirmed.]_
+
+{% if patterns %}
+Patterns observed:
+{% for p in patterns %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% endif %}
+
+## What didn't
+
+_[Adopters: 3–5 bullets on what didn't work, citing hypotheses falsified or decisions revisited.]_
+
+{% if hypotheses %}
+Hypotheses on file:
+{% for h in hypotheses %}
+- {{ h.cite }} **{{ h.title }}** — {{ h.summary }}
+{% endfor %}
+{% endif %}
+
+## What we'd do differently
+
+_[Adopters: changes for the next project.]_
+
+## Reusable decisions
+
+{% if decisions %}
+Decisions whose rationale travels well beyond this project:
+{% for d in decisions %}
+- {{ d.cite }} **{{ d.title }}** — {{ d.summary }}
+{% endfor %}
+{% else %}
+_No decisions captured yet._
+{% endif %}
+
+## Open questions that surfaced
+
+{% if questions %}
+{% for q in questions %}
+- {{ q.cite }} {{ q.title }}
+{% endfor %}
+{% else %}
+_No open questions captured._
+{% endif %}
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · lessons-learned scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

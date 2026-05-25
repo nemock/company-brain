@@ -1,0 +1,71 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+## Landscape overview
+
+_[Adopters: 1–2 paragraph summary of the competitive landscape based on the competitors below.]_
+
+## Competitor matrix
+
+{% if competitors %}
+| Competitor | Summary | URL |
+|---|---|---|
+{% for c in competitors %}
+| {{ c.cite }} **{{ c.title }}** | {{ c.summary }} | {{ c.canonical_url or "—" }} |
+{% endfor %}
+{% else %}
+_No competitors captured. Run `intake competitor` to add some._
+{% endif %}
+
+{% if meta.is_medical_device %}
+
+## IFU comparison summary
+
+_[Adopters: high-level summary of where competitor IFUs differ. The `ifu-comparison` scaffold goes deeper.]_
+
+{% for c in competitors %}
+{% if c.related_ifus %}
+- {{ c.title }}: {% for ifu_id in c.related_ifus %}[{{ ifu_id }}]{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+{% endfor %}
+
+## Regulatory posture summary
+
+{% for c in competitors %}
+{% if c.related_clearances %}
+- {{ c.title }}: {% for cid in c.related_clearances %}[{{ cid }}]{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% endif %}
+
+{% if market_data_sources %}
+## Market data sources
+
+{% for s in market_data_sources %}
+- {{ s.cite }} _{{ s.source_kind }}_ — {{ s.title }}
+{% endfor %}
+{% endif %}
+
+{% if press_release_sources %}
+## Press release sources
+
+{% for s in press_release_sources %}
+- {{ s.cite }} _{{ s.source_kind }}_ — {{ s.title }}
+{% endfor %}
+{% endif %}
+
+## Trends and white-space opportunities
+
+_[Adopters: 3–5 trends and where competitors haven't yet played.]_
+
+---
+
+{% if meta.appends_controlled_document_footer %}
+{{ meta.controlled_document_footer }}
+
+{% endif %}
+_company-brain v{{ meta.cb_version }} · competitive-brief scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

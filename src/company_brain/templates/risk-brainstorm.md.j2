@@ -1,0 +1,84 @@
+# {{ meta.doc_title }}
+
+> Vault: `{{ meta.vault_path }}` · Profile: `{{ meta.profile }}`
+
+{{ meta.scaffold_footer }}
+
+> **This is a planning artifact, not a controlled risk management file per ISO 14971.**
+> Promote anything durable from here into the controlled risk file under your QMS.
+
+## Open hazards under consideration
+
+{% if hazards %}
+{% for h in hazards %}
+- {{ h.cite }} **{{ h.title }}** — {{ h.summary }}
+{% endfor %}
+{% else %}
+_No hazards captured yet. Run `intake risk`._
+{% endif %}
+
+## Hazardous situations
+
+{% if hazardous_situations %}
+{% for h in hazardous_situations %}
+- {{ h.cite }} **{{ h.title }}** — {{ h.summary }}
+{% endfor %}
+{% else %}
+_No hazardous situations captured._
+{% endif %}
+
+## Potential harms
+
+{% if harms %}
+{% for h in harms %}
+- {{ h.cite }} **{{ h.title }}** — {{ h.summary }}
+{% endfor %}
+{% else %}
+_No harms captured._
+{% endif %}
+
+## Candidate mitigations / risk-control ideas
+
+{% if risk_control_ideas %}
+{% for r in risk_control_ideas %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% else %}
+_No risk-control ideas captured yet._
+{% endif %}
+
+## Risk insights
+
+{% if risk_insights %}
+{% for r in risk_insights %}
+- {{ r.cite }} **{{ r.title }}** — {{ r.summary }}
+{% endfor %}
+{% else %}
+_No risk-insights captured yet._
+{% endif %}
+
+## Related decisions
+
+{% if related_decisions %}
+{% for d in related_decisions %}
+- {{ d.cite }} **{{ d.title }}** — {{ d.summary }}
+{% endfor %}
+{% endif %}
+
+## Related pillars
+
+{% if related_pillars %}
+{% for p in related_pillars %}
+- {{ p.cite }} **{{ p.title }}** — {{ p.summary }}
+{% endfor %}
+{% endif %}
+
+## Residual-risk questions
+
+_[Adopters: list the open questions about risk that are not yet resolved. Promote durable ones to `question` nodes._]
+
+---
+
+{{ meta.controlled_document_footer }}
+
+_company-brain v{{ meta.cb_version }} · risk-brainstorm scaffold generated {{ meta.generation_date }} from vault at `{{ meta.vault_path }}`._

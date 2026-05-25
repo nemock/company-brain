@@ -8,7 +8,7 @@ Built as a set of Claude Code skills plus a Python CLI (`cb`). Industry-agnostic
 
 ## Status
 
-Current milestone: **v0.3.0 — Query, MRD, and one-pager.** The pipeline now goes end-to-end: scaffold a vault, capture knowledge via `intake`, ingest existing docs via `atomize`, query the graph via `query`, generate a real MRD or one-pager via `doc-generate`.
+Current milestone: **v0.4.0 — Visualize, maintain, and the 19 doc scaffolds** (in progress; `maintain` and scaffolds done; `visualize` next). The pipeline goes end-to-end: scaffold a vault, capture knowledge via `intake`, ingest existing docs via `atomize`, query the graph via `query`, generate any of 21 doc types via `doc-generate`, and keep the vault healthy via `maintain`.
 
 - [PRD.md](PRD.md) — full design spec.
 - [ROADMAP.md](ROADMAP.md) — milestone sequencing.
@@ -38,9 +38,9 @@ cb install-skills --source .
 | [`intake`](skills/intake/SKILL.md) | Conversational capture into typed nodes. Sub-modes: vision, product, persona, competitor, competitor-ifu, competitor-clearance, competitor-snapshot, metric, meeting-notes, risk, clearance. |
 | [`atomize`](skills/atomize/SKILL.md) | Ingest existing docs (markdown, Word, PDF, transcripts, image screenshots) into typed nodes with provenance. |
 | [`query`](skills/query/SKILL.md) | Answer questions against the graph. Auto-injects pillars, walks typed edges, cites node ids, flags vision-vs-evidence and staleness. |
-| [`doc-generate`](skills/doc-generate/SKILL.md) | Render planning documents from the graph. v0.3.0 ships **MRD** (md / html / docx) and **one-pager** (md / html). |
-| `maintain` | _Placeholder, lands v0.4.0._ Confidence decay, broken-edge repair, INDEX.md drift fix. |
-| `visualize` | _Placeholder, lands v0.4.0._ D3 HTML viewer with IFU-chain and predicate-tree views. |
+| [`doc-generate`](skills/doc-generate/SKILL.md) | Render planning documents from the graph. **21 generators**: full MRD (md / html / docx), full one-pager (md / html), plus 19 scaffolds (PID, project charter, stakeholder register, risk register, status report, meeting minutes, lessons learned, business plan, sales battle card, competitive brief, IFU comparison, decision log, press release, investor update, onboarding doc, SRD, SRS, HRS, risk brainstorm). |
+| [`maintain`](skills/maintain/SKILL.md) | Audit and repair the vault. `cb maintain repair` (auto-fix filename-id, missing inverse edges, controlled_document flag; regen INDEX.md). `cb maintain decay` (half-life confidence decay on fact snapshots). `cb maintain audit` (read-only health summary). `cb validate --fix` wires the same repair pass. |
+| `visualize` | _Placeholder, lands v0.4.0 step 3._ D3 HTML viewer with IFU-chain and predicate-tree views. |
 
 ## The CLI
 
@@ -48,13 +48,14 @@ cb install-skills --source .
 cb --help                                    # list subcommands
 cb --version
 cb scaffold        --profile <name>          # create a vault
-cb validate                                  # check the vault against the schema
+cb validate        [--fix]                   # check the vault; --fix runs maintain repair first
 cb describe-profile                          # JSON description of the active profile
 cb describe-node   <type>                    # JSON description of one node type
 cb extract         <file.docx|file.pdf>      # text extraction for atomize
 cb list-nodes      [filters]                 # JSON summary of nodes (for query)
 cb get-node        <id>                      # JSON node + inbound/outbound edges
-cb render          <doc>  [--format ...]     # generate MRD or one-pager
+cb render          <doc>  [--format ...]     # 21 doc types — MRD, one-pager, 19 scaffolds
+cb maintain        <subcommand>              # repair | decay | audit | rebuild-index
 cb install-skills                            # symlink skills into ~/.claude/skills
 ```
 
@@ -174,6 +175,76 @@ cb render mrd --date 2026-05-24                     # pin date (idempotency test
 
 The MRD is profile-aware: a medical-device vault gets §3 Indications-for-use and §7 Regulatory landscape; a default-profile vault doesn't, and the section numbers shift to fill the gap. The controlled-document footer is appended only under the medical-device profile.
 
+#### v0.4.0 scaffolds — 19 more doc types
+
+> Generate a PID for this project.
+
+> Render a stakeholder register.
+
+> Build a sales battle card against CardioTrace.
+
+> Generate the SRD, SRS, and HRS.
+
+> Render the decision log so I can see every choice and its rules-out.
+
+> Generate the onboarding doc for a new hire.
+
+> Build a risk brainstorm doc — we have a hazards review coming up.
+
+```bash
+# Project management
+cb render pid
+cb render project-charter
+cb render stakeholder-register
+cb render risk-register                             # medical-device only
+cb render status-report
+cb render meeting-minutes
+cb render lessons-learned
+
+# Engineering requirements
+cb render srd                                       # system-class requirements
+cb render srs                                       # software-class requirements
+cb render hrs                                       # hardware-class requirements
+
+# Strategy / sales / external
+cb render business-plan
+cb render sales-battle-card                         # picks first competitor by id
+cb render sales-battle-card --competitor competitor-pulseguard-medical
+cb render competitive-brief
+cb render ifu-comparison                            # medical-device only
+cb render decision-log
+cb render press-release
+cb render investor-update
+cb render onboarding-doc
+
+# Risk planning (medical-device only)
+cb render risk-brainstorm
+```
+
+Each scaffold is a runnable Jinja2 template that queries the right typed nodes, fills in what it can, and flags the output as a scaffold in the footer for adopters to complete. Sections with no inputs degrade gracefully to bracketed placeholders that name the right `intake` sub-mode. Markdown and HTML are both supported; docx / xlsx ship per-doc with the v1.x full implementations.
+
+### Maintain the vault
+
+> Audit this vault — what needs fixing?
+
+> Repair the vault (add missing inverse edges, fix filename-id mismatches, regenerate INDEX.md).
+
+> Decay the confidence on volatile fact snapshots.
+
+> Validate the vault and auto-fix what you can.
+
+```bash
+cb maintain audit                                   # read-only health summary
+cb maintain repair                                  # auto-fix + INDEX.md regen
+cb maintain repair --dry-run                        # preview without writing
+cb maintain decay                                   # half-life decay on fact snapshots
+cb maintain decay --today 2027-01-01                # pin reference date
+cb maintain rebuild-index                           # regenerate _system/INDEX.md only
+cb validate --fix                                   # validate after auto-repair
+```
+
+Confidence decay is per-metric: facts tied to a `low`-volatility metric have a 24-month half-life, `medium` is 6 months, `high` is 1 month. The original confidence is preserved as `confidence_original` so re-running is idempotent.
+
 ### Inspection and schema
 
 > What node types exist in the medical-device profile?
@@ -195,8 +266,7 @@ Drop files under `<vault>/_branding/`:
 
 - `colors.yaml` — overrides primary, secondary, accent, text, background, muted, font_family_headings, font_family_body. CSS variables in the generated HTML pick them up.
 - `logo.png` / `logo.jpg` / `logo.svg` — picked up if present (full embed in HTML/docx lands in a later milestone).
-- `templates/mrd.md.j2` — override the bundled MRD template entirely.
-- `templates/one-pager.md.j2` — override the bundled one-pager template entirely.
+- `templates/<doc-name>.md.j2` — override the bundled template for any of the 21 doc types (e.g. `mrd.md.j2`, `business-plan.md.j2`, `sales-battle-card.md.j2`).
 - `templates/html-wrapper.html.j2` — override the bundled HTML page chrome.
 
 No flags needed — the render commands automatically pick up overrides when they exist.
@@ -222,7 +292,7 @@ See [ROADMAP.md](ROADMAP.md) for the full milestone list.
 - **v0.1.0** ✅ schema definitions, `vault-architect`, hand-built medical-device example vault, `cb validate`.
 - **v0.2.0** ✅ `intake` (vision + product + competitor sub-modes), `atomize` (markdown / Word / PDF / transcripts / image screenshots).
 - **v0.3.0** ✅ `query` + MRD (profile-aware, evidence-vs-vision split, IFU comparison, anti-decisions) + one-pager + markdown / html / docx output.
-- **v0.4.0** — `visualize` + `maintain` + scaffold generators for PID, business plan, competitive brief, risk brainstorm (19 doc types).
+- **v0.4.0** — `maintain` ✅ · 19 scaffolds ✅ · `visualize` next.
 - **v0.5.0** — second example vault (SaaS) + onboarding docs + CHANGELOG.
 - **v1.0.0** — public release tag and announcement.
 
