@@ -8,7 +8,7 @@ Built as a set of Claude Code skills plus a Python CLI (`cb`). Industry-agnostic
 
 ## Status
 
-Current milestone: **v0.4.0 — Visualize, maintain, and the 19 doc scaffolds.** ✅ shipped. The pipeline goes end-to-end: scaffold a vault, capture knowledge via `intake`, ingest existing docs via `atomize`, query the graph via `query`, generate any of 21 doc types via `doc-generate`, keep the vault healthy via `maintain`, and explore the graph visually via `visualize`.
+Current milestone: **v0.5.0 — Second example + polish.** ✅ shipped. Two example vaults exercise both shipped profiles end-to-end; the [adoption guide](docs/adoption-guide.md), [profiles reference](docs/profiles.md), [competitive-archive guide](docs/competitive-archive.md), and [CHANGELOG](CHANGELOG.md) are complete. Next milestone is **v1.0.0** — the release tag and public announcement.
 
 - [PRD.md](PRD.md) — full design spec.
 - [ROADMAP.md](ROADMAP.md) — milestone sequencing.
@@ -289,15 +289,23 @@ Drop files under `<vault>/_branding/`:
 
 No flags needed — the render commands automatically pick up overrides when they exist.
 
-## Example vault
+## Example vaults
 
-`examples/meddev-fictional/` is a hand-built medical-device vault (fictional Vitalisens pulmonary patch + replaceable Pad) that exercises every active node type, every source kind, the IFU-history chain, the 510(k) predicate chain, the controlled-document boundary, and the non-goal-pillar pattern. Generated MRD / one-pager / HTML / docx live under `examples/meddev-fictional/exports/` as reference output.
+Two fully-built example vaults exercise both shipped profiles:
+
+- **`examples/meddev-fictional/`** — `medical-device` profile. Fictional Vitalisens ambulatory cardiac monitor + replaceable Pad. Exercises every active node type including the IFU history chain, the 510(k) predicate chain, the controlled-document boundary, and the non-goal-pillar pattern.
+- **`examples/saas-fictional/`** — `default` profile. Fictional Loftwing engineering analytics for VPs of Engineering. Exercises every universal node type without any medical-device-specific machinery. Distinct branding palette so the rendered HTML is visibly different.
+
+Both vaults ship pre-generated outputs under `exports/` — MRD (markdown/html/docx), one-pager, all applicable scaffolds, sales battle cards.
 
 ```bash
 cb validate          --path examples/meddev-fictional
 cb render mrd        --path examples/meddev-fictional
-cb render one-pager  --path examples/meddev-fictional
+cb render one-pager  --path examples/saas-fictional
+cb viewer            --path examples/saas-fictional --out /tmp/saas.html
 ```
+
+See [docs/adoption-guide.md](docs/adoption-guide.md) for an end-to-end walkthrough and [docs/profiles.md](docs/profiles.md) for the profile mechanism in detail.
 
 ## Idempotency
 
@@ -311,7 +319,7 @@ See [ROADMAP.md](ROADMAP.md) for the full milestone list.
 - **v0.2.0** ✅ `intake` (vision + product + competitor sub-modes), `atomize` (markdown / Word / PDF / transcripts / image screenshots).
 - **v0.3.0** ✅ `query` + MRD (profile-aware, evidence-vs-vision split, IFU comparison, anti-decisions) + one-pager + markdown / html / docx output.
 - **v0.4.0** ✅ `maintain` + 19 doc scaffolds + `visualize` (D3 HTML viewer with IFU-chain and predicate-tree modes).
-- **v0.5.0** — second example vault (SaaS) + onboarding docs + CHANGELOG.
+- **v0.5.0** ✅ saas-fictional example vault + adoption guide + profiles doc + competitive-archive doc + CHANGELOG.
 - **v1.0.0** — public release tag and announcement.
 
 ## License

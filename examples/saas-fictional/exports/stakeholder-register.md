@@ -18,4 +18,4 @@
 
 ---
 
-_company-brain v0.4.0 · stakeholder-register scaffold generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._
+_company-brain v0.5.0 · stakeholder-register scaffold generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._
