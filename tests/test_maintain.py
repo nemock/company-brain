@@ -22,6 +22,7 @@ import yaml
 from company_brain.maintain import (
     audit,
     decay,
+    init_readme_markers,
     rebuild_index,
     rebuild_readme,
     repair,
@@ -530,6 +531,140 @@ def test_rebuild_readme_non_strict_returns_no_readme_status(tmp_path: Path) -> N
     (tmp_path / "v" / "README.md").unlink()
     result = rebuild_readme(tmp_path / "v", strict=False)
     assert result.status == "no-readme"
+
+
+def test_init_readme_markers_inserts_markers_at_after_first_h2(tmp_path: Path) -> None:
+    """Default position lands the marker block between the first and
+    second ## headings — matching the scaffold template's placement."""
+
+    readme = tmp_path / "v" / "README.md"
+    readme.parent.mkdir()
+    (tmp_path / "v" / "_system").mkdir()
+    (tmp_path / "v" / "_system" / "PROFILE.md").write_text(
+        "---\nprofile: default\n---\n", encoding="utf-8"
+    )
+    readme.write_text(
+        "# Title\n\nIntro paragraph.\n\n## What this is\n\nBody.\n\n## Layout\n\nMore body.\n",
+        encoding="utf-8",
+    )
+
+    result = init_readme_markers(tmp_path / "v")
+    assert result.status == "rebuilt"
+    after = readme.read_text()
+    # Markers landed before the SECOND ## (## Layout) so they sit after
+    # the first ##'s body.
+    assert AUTO_README_START in after
+    assert AUTO_README_END in after
+    start_idx = after.index(AUTO_README_START)
+    what_idx = after.index("## What this is")
+    layout_idx = after.index("## Layout")
+    assert what_idx < start_idx < layout_idx
+    # The original content is preserved.
+    assert "# Title" in after
+    assert "Intro paragraph." in after
+    assert "Body." in after
+    assert "More body." in after
+
+
+def test_init_readme_markers_before_first_h2(tmp_path: Path) -> None:
+    readme = tmp_path / "v" / "README.md"
+    readme.parent.mkdir()
+    (tmp_path / "v" / "_system").mkdir()
+    (tmp_path / "v" / "_system" / "PROFILE.md").write_text(
+        "---\nprofile: default\n---\n", encoding="utf-8"
+    )
+    readme.write_text(
+        "# Title\n\nIntro.\n\n## First Section\n\nBody.\n",
+        encoding="utf-8",
+    )
+    init_readme_markers(tmp_path / "v", position="before-first-h2")
+    after = readme.read_text()
+    start_idx = after.index(AUTO_README_START)
+    first_h2_idx = after.index("## First Section")
+    assert start_idx < first_h2_idx
+
+
+def test_init_readme_markers_at_end(tmp_path: Path) -> None:
+    readme = tmp_path / "v" / "README.md"
+    readme.parent.mkdir()
+    (tmp_path / "v" / "_system").mkdir()
+    (tmp_path / "v" / "_system" / "PROFILE.md").write_text(
+        "---\nprofile: default\n---\n", encoding="utf-8"
+    )
+    readme.write_text("# Title\n\nBody.\n", encoding="utf-8")
+    init_readme_markers(tmp_path / "v", position="end")
+    after = readme.read_text()
+    # Markers land at the end of the file.
+    assert after.rstrip().endswith(AUTO_README_END)
+
+
+def test_init_readme_markers_refuses_when_already_present(tmp_path: Path) -> None:
+    readme = tmp_path / "v" / "README.md"
+    readme.parent.mkdir()
+    (tmp_path / "v" / "_system").mkdir()
+    (tmp_path / "v" / "_system" / "PROFILE.md").write_text(
+        "---\nprofile: default\n---\n", encoding="utf-8"
+    )
+    readme.write_text(
+        f"# Title\n\n{AUTO_README_START}\nx\n{AUTO_README_END}\n## Section\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="already contains"):
+        init_readme_markers(tmp_path / "v")
+
+
+def test_init_readme_markers_raises_when_no_readme(tmp_path: Path) -> None:
+    (tmp_path / "v" / "_system").mkdir(parents=True)
+    (tmp_path / "v" / "_system" / "PROFILE.md").write_text(
+        "---\nprofile: default\n---\n", encoding="utf-8"
+    )
+    with pytest.raises(FileNotFoundError):
+        init_readme_markers(tmp_path / "v")
+
+
+def test_init_readme_markers_dry_run_does_not_write(tmp_path: Path) -> None:
+    readme = tmp_path / "v" / "README.md"
+    readme.parent.mkdir()
+    (tmp_path / "v" / "_system").mkdir()
+    (tmp_path / "v" / "_system" / "PROFILE.md").write_text(
+        "---\nprofile: default\n---\n", encoding="utf-8"
+    )
+    body = "# Title\n\n## Section\nBody.\n"
+    readme.write_text(body, encoding="utf-8")
+    result = init_readme_markers(tmp_path / "v", dry_run=True)
+    assert result.status == "skipped-dry-run"
+    assert readme.read_text() == body  # untouched
+
+
+def test_init_then_rebuild_round_trip(tmp_path: Path) -> None:
+    """init-readme-markers + rebuild-readme is the documented upgrade path."""
+
+    scaffold(tmp_path / "v", "default", init_git=False)
+    readme = tmp_path / "v" / "README.md"
+    # Simulate a hand-edited older-vault README WITHOUT the markers.
+    older = (
+        "# Custom title\n\n"
+        "Hand-edited intro paragraph.\n\n"
+        "## What this is\n\n"
+        "Hand-edited explanation.\n\n"
+        "## Layout\n\n"
+        "Hand-edited layout.\n"
+    )
+    readme.write_text(older, encoding="utf-8")
+
+    init_readme_markers(tmp_path / "v")
+    rebuild_readme(tmp_path / "v", strict=True)
+
+    after = readme.read_text()
+    # Hand-edited content survives.
+    assert "# Custom title" in after
+    assert "Hand-edited intro paragraph." in after
+    assert "Hand-edited explanation." in after
+    assert "Hand-edited layout." in after
+    # Auto-section was populated (even though the vault is empty).
+    assert AUTO_README_START in after
+    assert AUTO_README_END in after
+    assert "**Vault state:**" in after
 
 
 def test_repair_also_refreshes_readme_auto_section(cloned_meddev: Path) -> None:

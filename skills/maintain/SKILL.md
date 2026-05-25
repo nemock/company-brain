@@ -86,9 +86,21 @@ cb maintain rebuild-readme --path <vault>
 cb maintain rebuild-readme --path <vault> --dry-run
 ```
 
-`cb maintain repair` calls this silently and skips cleanly if the markers aren't present (e.g. on an older vault scaffolded before this feature landed). The dedicated `rebuild-readme` command errors loudly with a suggestion to run `cb scaffold --force` if the markers are missing — useful for diagnosing why the auto-section didn't update.
+`cb maintain repair` calls this silently and skips cleanly if the markers aren't present (e.g. on an older vault scaffolded before this feature landed). The dedicated `rebuild-readme` command errors loudly if the markers are missing, with two remediations:
 
-`cb scaffold --force` regenerates the whole README from the current scaffold template, which **overwrites hand edits outside the markers**. Use it for a periodic refresh after a company-brain upgrade; commit first so you can recover the lost hand edits if needed.
+- **`cb maintain init-readme-markers`** — non-destructive. Inserts the marker pair (with a stub line between them) into the existing README at a sensible default location (between the first and second `##` heading). All hand edits are preserved. This is the right path for upgrading a vault scaffolded before the comprehensive README landed.
+- **`cb scaffold --force`** — destructive. Regenerates the whole README from the current scaffold template; **hand edits outside the markers are overwritten**. Use it for a periodic full refresh after a company-brain upgrade; commit first so the prior README is recoverable from git.
+
+### Inserting cb:auto markers into an older README (`cb maintain init-readme-markers`)
+
+```bash
+cb maintain init-readme-markers --path <vault>                  # default: between first and second ## heading
+cb maintain init-readme-markers --path <vault> --position before-first-h2
+cb maintain init-readme-markers --path <vault> --position end
+cb maintain init-readme-markers --path <vault> --dry-run
+```
+
+Idempotent in spirit (errors clearly when markers are already present rather than re-inserting). After running this once, follow up with `cb maintain rebuild-readme` to populate the inserted block.
 
 ## What this skill does NOT do
 

@@ -38,6 +38,7 @@ from .intake_helpers import (
 from .maintain import (
     audit as maintain_audit,
     decay as maintain_decay,
+    init_readme_markers as maintain_init_readme_markers,
     rebuild_index as maintain_rebuild_index,
     rebuild_readme as maintain_rebuild_readme,
     repair as maintain_repair,
@@ -899,6 +900,58 @@ def maintain_rebuild_index_command(
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
     typer.echo(f"Regenerated {target}")
+
+
+@maintain_app.command("init-readme-markers")
+def maintain_init_readme_markers_command(
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory. Defaults to the current directory.",
+    ),
+    position: str = typer.Option(
+        "after-first-h2",
+        "--position",
+        help=(
+            "Where to insert the marker block. One of: "
+            "after-first-h2 (default; matches the scaffold template), "
+            "before-first-h2, end."
+        ),
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would change without writing anything.",
+    ),
+) -> None:
+    """Inject `<!-- cb:auto START -->` / `<!-- cb:auto END -->` markers into an
+    existing vault README in place, without overwriting hand edits.
+
+    Use this when upgrading a vault scaffolded before the comprehensive
+    README landed. After this command lands the markers, run
+    `cb maintain rebuild-readme` to populate the auto-section.
+
+    Errors clearly if the README is missing or the markers are already
+    present (no-op).
+    """
+
+    try:
+        result = maintain_init_readme_markers(
+            path.resolve(), position=position, dry_run=dry_run
+        )
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    except (FileNotFoundError, ValueError) as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    prefix = "(dry-run) " if dry_run else ""
+    typer.echo(f"{prefix}{result.status}: {result.detail}")
+    if not dry_run and result.status == "rebuilt":
+        typer.echo("")
+        typer.echo("Next: run `cb maintain rebuild-readme` to populate the auto-section.")
 
 
 @maintain_app.command("rebuild-readme")

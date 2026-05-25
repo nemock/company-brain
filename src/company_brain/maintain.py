@@ -234,6 +234,96 @@ def rebuild_index(vault_path: Path) -> Path:
     return _write_index(vault, vault_path)
 
 
+def init_readme_markers(
+    vault_path: Path,
+    *,
+    position: str = "after-first-h2",
+    dry_run: bool = False,
+) -> ReadmeRegenResult:
+    """Inject the cb:auto markers into an existing vault README in place.
+
+    For vaults scaffolded by company-brain < 0.6 whose README was written
+    or hand-edited before the comprehensive scaffold landed. The markers
+    carry a stub line; the next ``cb maintain rebuild-readme`` populates
+    the real content. Everything outside the inserted lines is left
+    exactly as-is.
+
+    ``position`` controls where the marker block lands:
+
+    * ``"after-first-h2"`` (default) — between the first and second
+      ``##`` heading. Matches where the scaffold template puts it.
+    * ``"before-first-h2"`` — immediately before the first ``##`` heading.
+    * ``"end"`` — at the very end of the file.
+
+    Raises ``FileNotFoundError`` if the README is missing, ``ValueError``
+    if markers are already present.
+    """
+
+    valid_positions = {"after-first-h2", "before-first-h2", "end"}
+    if position not in valid_positions:
+        raise ValueError(
+            f"unknown position '{position}'; one of: {sorted(valid_positions)}"
+        )
+
+    readme = vault_path / "README.md"
+    if not readme.is_file():
+        raise FileNotFoundError(
+            f"{readme} does not exist; run `cb scaffold --force` to create it."
+        )
+
+    text = readme.read_text(encoding="utf-8")
+    if AUTO_README_START in text or AUTO_README_END in text:
+        raise ValueError(
+            f"{readme} already contains the cb:auto markers; nothing to do. "
+            "Run `cb maintain rebuild-readme` to refresh the auto-section."
+        )
+
+    stub_block = (
+        f"\n{AUTO_README_START}\n"
+        "_Auto-section placeholder. Run `cb maintain rebuild-readme` to populate._\n"
+        f"{AUTO_README_END}\n"
+    )
+
+    insertion_point = _find_marker_insertion_point(text, position)
+    new_text = text[:insertion_point] + stub_block + text[insertion_point:]
+
+    if dry_run:
+        return ReadmeRegenResult(
+            path=readme,
+            status="skipped-dry-run",
+            detail=f"would insert cb:auto markers at offset {insertion_point} (position={position})",
+        )
+
+    readme.write_text(new_text, encoding="utf-8")
+    return ReadmeRegenResult(
+        path=readme,
+        status="rebuilt",
+        detail=f"inserted cb:auto markers at position={position}",
+    )
+
+
+def _find_marker_insertion_point(text: str, position: str) -> int:
+    """Return a character offset where the marker block should be inserted."""
+
+    if position == "end":
+        return len(text.rstrip()) + 1 if text else 0
+
+    lines = text.splitlines(keepends=True)
+    h2_indices = [i for i, line in enumerate(lines) if line.startswith("## ")]
+    if not h2_indices:
+        return len(text.rstrip()) + 1 if text else 0
+
+    first_h2 = h2_indices[0]
+    if position == "before-first-h2":
+        return sum(len(line) for line in lines[:first_h2])
+
+    # after-first-h2: insert before the SECOND ## heading, or at EOF if none.
+    if len(h2_indices) >= 2:
+        next_h2 = h2_indices[1]
+        return sum(len(line) for line in lines[:next_h2])
+    return len(text.rstrip()) + 1
+
+
 def rebuild_readme(
     vault_path: Path, *, strict: bool = True, dry_run: bool = False
 ) -> ReadmeRegenResult:
@@ -271,8 +361,12 @@ def rebuild_readme(
         if strict:
             raise ValueError(
                 f"{readme} does not contain the cb:auto markers "
-                f"({AUTO_README_START!r} / {AUTO_README_END!r}); "
-                "run `cb scaffold --force` to regenerate."
+                f"({AUTO_README_START!r} / {AUTO_README_END!r}). "
+                "To insert them without losing hand edits, run "
+                "`cb maintain init-readme-markers`. "
+                "To regenerate the README from the current scaffold "
+                "template (overwriting hand edits), run "
+                "`cb scaffold --force`."
             )
         return ReadmeRegenResult(
             path=readme,
@@ -833,6 +927,7 @@ __all__ = [
     "VaultNotFoundError",
     "audit",
     "decay",
+    "init_readme_markers",
     "rebuild_index",
     "rebuild_readme",
     "repair",
