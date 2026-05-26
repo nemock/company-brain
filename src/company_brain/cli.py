@@ -25,6 +25,16 @@ import typer
 
 from . import __version__
 from .install_skills import SkillSourceError, install_skills as install_skills_fn
+from .intake import (
+    ManifestError,
+    UnknownDocError,
+    compute_gaps,
+    filter_for_profile,
+    gaps_to_dict,
+    list_manifests,
+    load_manifest,
+    manifest_to_dict,
+)
 from .intake_helpers import (
     ExtractError,
     ProfileLookupError,
@@ -55,6 +65,7 @@ from .render import (
 from .scaffold import ProfileNotFoundError, scaffold as scaffold_vault
 from .schema import PROFILE_SPECS
 from .validator import VaultNotFoundError, summarize, validate
+from .vault import load_vault
 from .viewer import VIEW_MODES, ViewerProfileError, render_viewer
 
 app = typer.Typer(
@@ -745,6 +756,124 @@ def get_node_command(
         raise typer.Exit(code=2) from exc
 
     typer.echo(to_json(data))
+
+
+# ---------------------------------------------------------------------------
+# Document-driven intake helpers (v0.7.0)
+# ---------------------------------------------------------------------------
+
+
+@app.command("describe-doc-questions")
+def describe_doc_questions_command(
+    doc: str = typer.Argument(
+        ...,
+        metavar="DOC",
+        help=(
+            "Document name. Run `cb describe-doc-questions --help` and see "
+            "the manifest registry — v0.7.0 ships 'mrd'; more arrive as "
+            "adopter demand surfaces."
+        ),
+    ),
+    path: Path | None = typer.Option(
+        None,
+        "--path",
+        "-P",
+        help=(
+            "Optional vault path. When provided, the active profile is read "
+            "from `_system/PROFILE.md` and sections gated by a different "
+            "profile are dropped from the output."
+        ),
+    ),
+) -> None:
+    """Emit the question manifest for a document as JSON.
+
+    Consumed by the `intake for-doc` sub-mode: the LLM reads the manifest to
+    learn which sections to walk, what questions to ask, and what node types
+    each section's answers should produce.
+
+    Without `--path`, the full manifest is emitted (every section, including
+    profile-gated ones). With `--path`, sections whose `profile_required`
+    doesn't match the vault's profile are dropped.
+    """
+
+    try:
+        manifest = load_manifest(doc)
+    except UnknownDocError as exc:
+        known = list_manifests()
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        if known:
+            typer.secho(
+                f"hint: known docs are {', '.join(known)}",
+                fg=typer.colors.YELLOW,
+                err=True,
+            )
+        raise typer.Exit(code=2) from exc
+    except ManifestError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    if path is not None:
+        try:
+            vault = load_vault(path.resolve())
+        except VaultNotFoundError as exc:
+            typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=2) from exc
+        manifest = filter_for_profile(manifest, vault.profile_name)
+
+    typer.echo(to_json(manifest_to_dict(manifest)))
+
+
+@app.command("gaps-for-doc")
+def gaps_for_doc_command(
+    doc: str = typer.Argument(
+        ...,
+        metavar="DOC",
+        help="Document name (e.g. 'mrd').",
+    ),
+    path: Path = typer.Option(
+        Path("."),
+        "--path",
+        "-P",
+        help="Vault directory to analyze. Defaults to the current directory.",
+    ),
+) -> None:
+    """Emit a per-section gap report for a document as JSON.
+
+    The report classifies every section of the document's question manifest
+    as `complete` (every `feeds_from` slot is at or above its `min`),
+    `partial` (some slots have nodes but not all are satisfied), or `empty`
+    (no slot has any matching node). Sections gated by a different profile
+    are dropped before analysis.
+
+    Used by `intake for-doc` to skip complete sections, confirm partial
+    ones, and pose questions on empty ones.
+    """
+
+    try:
+        manifest = load_manifest(doc)
+    except UnknownDocError as exc:
+        known = list_manifests()
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        if known:
+            typer.secho(
+                f"hint: known docs are {', '.join(known)}",
+                fg=typer.colors.YELLOW,
+                err=True,
+            )
+        raise typer.Exit(code=2) from exc
+    except ManifestError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    try:
+        vault = load_vault(path.resolve())
+    except VaultNotFoundError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    manifest = filter_for_profile(manifest, vault.profile_name)
+    gaps = compute_gaps(manifest, vault)
+    typer.echo(to_json(gaps_to_dict(gaps)))
 
 
 maintain_app = typer.Typer(
