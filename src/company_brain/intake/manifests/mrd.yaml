@@ -1,0 +1,228 @@
+doc: mrd
+title: Marketing Requirements Document
+
+intro: |
+  The MRD walks the company from "what we believe" through "who we serve"
+  to "how we win." It pulls from pillars (governing principles), products,
+  personas, customers, market requirements, competitors, and — for medical
+  devices — indications for use, regulatory clearances, regulations, and
+  standards. Sections 8 (evidence vs. vision split) and 11 (sources
+  bibliography) are computed at render time from existing nodes and aren't
+  part of this interview — they appear in the rendered MRD without separate
+  capture.
+
+sections:
+  - id: executive-summary
+    title: Executive summary
+    intent: |
+      A short opening paragraph stating what the company is building, who
+      it's for, and why it matters. Derived from positive pillars plus the
+      core product set.
+    feeds_from:
+      - type: pillar
+        role: positive
+        min: 1
+      - type: product
+        min: 1
+    questions:
+      - prompt: |
+          In one or two sentences, what does this company build, and who is
+          it for? Don't worry about polish — tell me what you'd say to
+          someone over coffee.
+        captures: [pillar, product]
+
+  - id: vision-positioning
+    title: Vision and positioning
+    intent: |
+      The durable principles that govern decisions. Captured as pillars,
+      ideally with auto_inject set on the ones an LLM should reach for in
+      every future answer. Plus the founder-vision or strategic-thesis
+      source these principles come from, if any.
+    feeds_from:
+      - type: pillar
+        role: positive
+        min: 3
+      - type: source
+        role: founder-vision
+        min: 0
+    questions:
+      - prompt: |
+          What durable principles guide your decisions? These are often
+          phrased as "we always X" or "we believe Y" — beliefs you've held
+          onto across pivots. Give me three or more.
+        captures: [pillar]
+      - prompt: |
+          Where do those principles come from — a founder vision doc, a
+          strategic thesis you wrote, domain expertise, a specific
+          experience? If there's a source we should anchor on, name it.
+        captures: [source]
+
+  - id: indications-for-use
+    title: Indications for use
+    profile_required: medical-device
+    intent: |
+      The clinical scope of the device — population, condition,
+      intervention, setting — for each product. Versioned via preceded_by
+      edges when revisions land.
+    feeds_from:
+      - type: indication-for-use
+        min: 1
+    questions:
+      - prompt: |
+          Let's nail down the indication for use for one product. Which
+          product are we describing? If it doesn't have a node yet, give me
+          its name and one-line purpose first.
+        captures: [product, indication-for-use]
+      - prompt: |
+          Who is this device for — what's the population? Age range,
+          condition severity, anything that scopes who it's used on.
+        captures: [indication-for-use.population]
+      - prompt: |
+          What condition is being diagnosed, monitored, or treated?
+        captures: [indication-for-use.condition]
+      - prompt: |
+          What does the device do clinically — the intervention? Stimulates,
+          measures, delivers, supports, diagnoses, etc.
+        captures: [indication-for-use.intervention]
+      - prompt: |
+          In what setting is this used — hospital, ambulatory surgery
+          center, home, OR, ER, ICU?
+        captures: [indication-for-use.setting]
+
+  - id: market-personas
+    title: Market and personas
+    intent: |
+      The archetypal users (personas) and any named real customers we're
+      designing for or learning from. Personas are roles; customers are
+      anonymizable real organizations.
+    feeds_from:
+      - type: persona
+        min: 1
+      - type: customer
+        min: 0
+    questions:
+      - prompt: |
+          Who are the user personas — the archetypal users? Describe each
+          in role + context terms ("ambulatory cardiologist in a 200-bed
+          community hospital"), not real names.
+        captures: [persona]
+      - prompt: |
+          Are there specific named customers you've worked with or are
+          designing for? Real organizations are fine, anonymize them if
+          you want.
+        captures: [customer]
+
+  - id: market-requirements
+    title: Market requirements
+    intent: |
+      Capability-level needs the market expresses — heard from prospects,
+      customers, analysts. Filed as requirements with
+      requirement_class=market. Not feature-level; feature-level lives in
+      SRS/SRD/HRS.
+    feeds_from:
+      - type: requirement
+        role: market
+        min: 1
+    questions:
+      - prompt: |
+          What does the market require this product to do? List the
+          capability-level needs you've heard from prospects, customers, or
+          analysts. Each one should be a verifiable statement, not a feature.
+        captures: [requirement]
+
+  - id: competitive-landscape
+    title: Competitive landscape
+    intent: |
+      The competitors and alternatives buyers consider, each anchored by
+      legal name and canonical URL. Positioning, strengths, and weaknesses
+      flow from those anchors.
+    feeds_from:
+      - type: competitor
+        min: 1
+    questions:
+      - prompt: |
+          Who are your competitors or alternatives? For each one, give me
+          the legal name and the primary URL — those two anchor everything
+          else. Three is a useful number; more is fine.
+        captures: [competitor]
+      - prompt: |
+          For each competitor, what's your one-paragraph read on their
+          positioning, strengths, and weaknesses? Note your reading of
+          weaknesses as your hypothesis, not fact.
+        captures: [competitor]
+
+  - id: regulatory-landscape
+    title: Regulatory landscape
+    profile_required: medical-device
+    intent: |
+      Clearances (yours, predicates, competitors'), regulations that apply
+      (MDR, 21 CFR 820, etc.), and standards in scope (ISO 14971, IEC
+      62304, IEC 60601). Clearances anchor the predicate chain via
+      preceded_by edges.
+    feeds_from:
+      - type: regulatory-clearance
+        min: 1
+      - type: regulation
+        min: 0
+      - type: standard
+        min: 0
+    questions:
+      - prompt: |
+          What regulatory clearances are relevant — yours, predicates,
+          competitors'? For each one I need a K-number (or equivalent),
+          the clearance type (510k / de-novo / pma / breakthrough /
+          letter-to-file), the date, the applicant, the device name, the
+          product codes, and the summary URL.
+        captures: [regulatory-clearance]
+      - prompt: |
+          Which regulations apply — MDR, 21 CFR 820, anything else? Name
+          them and we'll capture each.
+        captures: [regulation]
+      - prompt: |
+          Which standards are in scope — ISO 14971, IEC 62304, IEC 60601
+          family, ISO 13485, others?
+        captures: [standard]
+
+  - id: open-questions
+    title: Open questions
+    intent: |
+      Known unknowns worth preserving because their answers would change a
+      decision, pillar, playbook, or hypothesis. The MRD surfaces these so
+      the team is honest about what they don't yet know.
+    feeds_from:
+      - type: question
+        min: 1
+    questions:
+      - prompt: |
+          What are you actively trying to find out? Known unknowns —
+          questions whose answers would change a decision you're sitting
+          on. List as many as come to mind.
+        captures: [question]
+
+  - id: non-goals
+    title: What we are explicitly not doing
+    intent: |
+      The durable boundaries (non-goal pillars) and the decisions whose
+      most important part is what they rule out. Voice dictation often
+      buries these in positive prose; this section pulls them to the
+      surface.
+    feeds_from:
+      - type: pillar
+        role: non-goal
+        min: 1
+      - type: decision
+        role: rules-out
+        min: 0
+    questions:
+      - prompt: |
+          What are you explicitly NOT doing? Markets you won't enter,
+          customer segments you're saying no to, capabilities that aren't
+          in scope. Voice these as "we will never X" or "we have decided
+          not to Y" — those become non-goal pillars.
+        captures: [pillar]
+      - prompt: |
+          Are there decisions where the most important part is what got
+          ruled out — alternatives you considered and rejected? Walk me
+          through one. The decision plus what it ruled out becomes a
+          decision node with a "What This Rules Out" section.
+        captures: [decision]
