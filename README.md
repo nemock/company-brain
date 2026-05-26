@@ -2,9 +2,44 @@
 
 > ⚠️ **Pre-1.0, under active development.** APIs, schema, and skill interfaces will change without notice. Watch [ROADMAP.md](ROADMAP.md) for milestones.
 
-An AI-native knowledge graph for companies — products, people, decisions, vision, evidence, competitive landscape — that lives in Obsidian-compatible markdown and lets agents retrieve cheaply from typed nodes and typed edges.
+**An open-source typed knowledge graph for early-stage companies.** Capture your company's vision, products, customers, competitors, decisions, and the things you've explicitly ruled out as typed markdown nodes in your own git repository. Generate the 21 planning documents your company needs — MRD, PRD, business plan, sales battle card, competitive brief, investor update, decision log, onboarding doc, and more — directly from that single source of truth. Update one node, and every document that references it regenerates with a meaningful git diff.
 
-Built as a set of Claude Code skills plus a Python CLI (`cb`). Industry-agnostic core with an opt-in **medical-device** profile that adds indications-for-use, regulatory clearances, and ISO-14971-vocabulary risk nodes — all explicitly **above** any design controls layer.
+## Why this exists
+
+There is a phase in every early-stage company when the pitch deck quietly becomes the de facto source of truth for everything. The competitive landscape, the product roadmap, the pricing rationale, the team narrative — all of it lives in the deck because the deck is what gets updated for every investor meeting and partner pitch.
+
+This works until it doesn't. The sales deck says one thing. The board deck says another. The investor update from last month says a third. The website says a fourth, written six months ago by someone who has since left the company. Five sources, five subtly different stories, and someone has to be the human cache reconciling them every Sunday afternoon.
+
+`company-brain` exists for the moment when that reconciliation tax starts to be measurable in your week. It treats the company's knowledge as the source of truth and the documents as outputs, generated from typed nodes you own as markdown files in your own git repo. Capture the knowledge once. Use it everywhere.
+
+## Who this is for
+
+Three role-based personas span every industry the product supports:
+
+- **The Founder** at a 1–15-person early-stage company who is currently the source of ground truth for everything, and feeling the scalability cost of being the bottleneck.
+- **The Lead Product Manager** at a 15–50-person company whose job is to maintain product context across engineering, sales, marketing, and customer success, and who currently lacks a substrate shaped for synthesis.
+- **The Lead Marketing Manager** at a 15–50-person company who produces MRDs, sales battle cards, and competitive briefs by hand, and watches them drift from product reality within weeks.
+
+Industry doesn't change the personas. A founder is a founder whether the company is building a wearable medical device, a SaaS analytics platform, a hardware product, or a services firm. **Industry specialization is layered on through opt-in profiles.** The most fully developed profile today is medical device — ISO 14971 risk vocabulary, indications-for-use history chains, 510(k) predicate-device modeling, with the explicit discipline of sitting *above* design controls and producing no controlled documents. Reserved profile slots for SaaS, hardware, and services are open to community contribution.
+
+## What you get
+
+- **Typed knowledge graph in plain markdown.** Products, personas, customers, competitors, decisions, pillars, requirements, features, metrics — each a first-class node type with structured frontmatter and typed edges. Agent-readable. Human-readable. Version-controlled like code, because it is.
+- **21 planning-document generators.** From the same graph: MRD, PRD, PID, business plan, sales battle card, competitive brief, investor update, decision log, status report, SRD / SRS / HRS, press release, onboarding doc, IFU comparison (medical-device), risk register (medical-device), and others. Idempotent: same vault, same byte-identical output.
+- **Anti-decisions and non-goal pillars as first-class concepts.** What the company has explicitly ruled out is captured, retrievable, and surfaced in generated documents.
+- **Vision-vs-evidence provenance.** Every load-bearing claim cites a typed source node. Generated documents distinguish founder vision from market evidence, customer interviews, FDA filings, and other source kinds.
+- **Vault is a git repository.** Multi-user collaboration via standard PR / merge workflow. No proprietary sync layer, no per-seat pricing, no vendor lock.
+
+## What this isn't
+
+The discipline of saying no is what creates room for the things `company-brain` does well.
+
+- **Not a project management tool.** No sprints, no Gantt charts, no OKR tracking. We feed Jira, Linear, and Asana. We don't try to be them. Test: if a proposed feature would generate more than ~5 vault changes per user per week, it's the wrong shape for markdown-in-git.
+- **Not an eQMS.** For medical-device users, we sit *above* design controls and produce no controlled documents. We feed Greenlight Guru, MasterControl, Innolitics RDM, and similar systems.
+- **Not a SaaS.** The vault lives on your machine, in your own git repo. No multi-tenant database, no proprietary sync.
+- **Not for non-technical buyers.** The markdown / git / CLI workflow is a deliberate filter. Notion and Confluence serve WYSIWYG audiences better.
+
+Built as a set of Claude Code skills plus a Python CLI (`cb`). MIT-licensed.
 
 ## Status
 
