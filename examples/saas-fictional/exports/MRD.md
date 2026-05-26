@@ -160,4 +160,4 @@ A bibliography of every source node in this vault, labeled by `source_kind`. Cit
 
 ---
 
-_company-brain v0.5.0 · MRD generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._
+_company-brain v0.6.0 · MRD generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._

@@ -8,7 +8,7 @@ Built as a set of Claude Code skills plus a Python CLI (`cb`). Industry-agnostic
 
 ## Status
 
-Current milestone: **v0.5.0 — Second example + polish.** ✅ shipped. Two example vaults exercise both shipped profiles end-to-end; the [adoption guide](docs/adoption-guide.md), [profiles reference](docs/profiles.md), [competitive-archive guide](docs/competitive-archive.md), and [CHANGELOG](CHANGELOG.md) are complete. Next milestone is **v1.0.0** — the release tag and public announcement.
+Current milestone: **v0.6.0 — Field-report polish.** ✅ shipped. The first version cycle driven by operating a real production vault — five friction points surfaced and fixed (README / `.gitignore` `--force` clobbers, exports-table noise, DOCX non-determinism), plus two new `cb maintain` commands for upgrading older vaults non-destructively. Two example vaults still exercise both shipped profiles end-to-end. See the [CHANGELOG](CHANGELOG.md) for the full delta. Next milestone is **v1.0.0** — the release tag and public announcement.
 
 - [PRD.md](PRD.md) — full design spec.
 - [ROADMAP.md](ROADMAP.md) — milestone sequencing.
@@ -320,6 +320,7 @@ See [ROADMAP.md](ROADMAP.md) for the full milestone list.
 - **v0.3.0** ✅ `query` + MRD (profile-aware, evidence-vs-vision split, IFU comparison, anti-decisions) + one-pager + markdown / html / docx output.
 - **v0.4.0** ✅ `maintain` + 19 doc scaffolds + `visualize` (D3 HTML viewer with IFU-chain and predicate-tree modes).
 - **v0.5.0** ✅ saas-fictional example vault + adoption guide + profiles doc + competitive-archive doc + CHANGELOG.
+- **v0.6.0** ✅ field-report polish: non-destructive `cb scaffold --force` (marker-aware README + `.gitignore` splice; branding skip-if-exists), DOCX byte-deterministic, exports-table filter, `cb maintain init-readme-markers` / `init-gitignore-markers`.
 - **v1.0.0** — public release tag and announcement.
 
 ## License

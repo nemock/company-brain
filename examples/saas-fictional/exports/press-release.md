@@ -34,4 +34,4 @@ _[Adopters: 2–3 sentences. Contact info.]_
 
 ---
 
-_company-brain v0.5.0 · press-release scaffold generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._
+_company-brain v0.6.0 · press-release scaffold generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._

@@ -71,4 +71,4 @@ _[Adopters: 6–12 month and 12–24 month milestones with go/no-go criteria.]_
 
 ---
 
-_company-brain v0.5.0 · business-plan scaffold generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._
+_company-brain v0.6.0 · business-plan scaffold generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._

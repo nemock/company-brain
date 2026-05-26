@@ -4,6 +4,51 @@ All notable changes to company-brain. Format follows [Keep a Changelog](https://
 
 The schema is data; profile / node-type / edge-type additions are minor-version-breaking only if they require existing vaults to change. Additions that older vaults can ignore are non-breaking.
 
+## [0.6.0] — 2026-05-25
+
+Field-report polish. The first version cycle driven by operating a real medical-device vault (`AiM_Wiki`, ~61 nodes) and surfacing the rough edges that hadn't shown up in the example vaults. Every change here originated as a friction point flagged in production.
+
+### Added
+
+- **`cb maintain init-readme-markers`** — non-destructive marker injection for vaults whose README was scaffolded before the `<!-- cb:auto -->` convention landed. Inserts the marker pair at a sensible default location (between the first and second `##` heading, configurable via `--position`). All hand-curated content is preserved; the next `cb maintain rebuild-readme` populates the auto-block. The upgrade path that lets adopters move to the marker-based world without losing their README content.
+- **`cb maintain init-gitignore-markers`** — symmetric command for the vault `.gitignore`. Prepends the `# cb:gitignore-managed` marker block to a legacy file; user-added rules (`node_modules/`, `*.mp4`, build artifacts, etc.) are preserved below the managed block. Future `cb scaffold --force` runs splice the managed block in place.
+- **`cb scaffold --reset-branding`** — opt-in flag (used in combination with `--force`) that overwrites `_branding/colors.yaml` and `_branding/README.md` back to scaffold defaults. Without it, `--force` now skips the branding starters by design.
+
+### Changed
+
+- **`cb scaffold --force` is now safe to re-run on every upgrade.** Three behavioral shifts working together:
+  - **README.** When the existing README has `<!-- cb:auto -->` markers, `--force` performs an in-place splice — the auto-block is refreshed from current vault state and everything outside the markers stays byte-identical to the user's hand-curated content. Legacy READMEs without markers still get the v0.5.0 full-overwrite (no content to preserve); the migration path is `cb maintain init-readme-markers` once.
+  - **`.gitignore`.** Marker-aware splice on `--force`: only the block between `# cb:gitignore-managed START` and `END` is rewritten. User-added rules outside the markers survive. Legacy `.gitignore` without markers is preserved as-is (skipped, not clobbered).
+  - **`_branding/`.** `colors.yaml` and `README.md` are no longer overwritten by `--force` alone — these are user-customized brand assets. Pass `--reset-branding` for explicit reset.
+- **DOCX render is now byte-deterministic.** Two sources of churn normalized: docx core properties (`<dcterms:created>`, `<dcterms:modified>`, author, last_modified_by) are stamped to `generation_date` at midnight UTC / a stable string instead of wall-clock + OS user; and the underlying zip is re-packed with name-sorted entry order and a fixed (1980-01-01) per-entry timestamp. `cb render mrd --format docx --date <pinned>` now produces byte-identical bytes on every run, matching the idempotency contract for markdown and HTML.
+- **README auto-section exports table is now filtered.** Skips files starting with `_` or `.`, skips `vault-graph*` (viewer convention; doesn't belong in `exports/`), and restricts to known doc extensions (`.md`, `.html`, `.docx`, `.pdf`, `.xlsx`, `.csv`). No more `_build_vault_graph.py` or other helpers crowding the table.
+- **`cb scaffold --force` on a populated vault now refreshes the README auto-block from current vault state** instead of resetting it to the "0 nodes" empty-vault stub.
+
+### Fixed
+
+- `cb scaffold --force` was clobbering hand-curated README content outside the cb:auto markers (the entire point of the marker convention). Recovery was previously a `git restore`. Fixed via the in-place splice path above.
+- `cb scaffold --force` was reverting `.gitignore` to the bare scaffold default, silently dropping user-added patterns (`node_modules/`, `*.app`, `*.mp4`, language artifacts). Fixed via marker-aware splice.
+- "Latest exports" table in the README auto-section was listing helper scripts and the viewer output alongside real documents. Fixed via the filter rules above.
+- DOCX bytes drifted between renders even when the visible content was unchanged (zip metadata + wall-clock core properties). Fixed via the determinism work above.
+
+### Tests
+
+346 passing, ruff clean. Net delta from v0.5.0: +33 tests, primarily covering marker preservation across all the new `--force` paths and the byte-equality assertion on DOCX output.
+
+### Field-report status
+
+All five friction points from the production AiM_Wiki vault session are resolved:
+
+| # | Friction | Commit |
+|---|---|---|
+| 1 | `--force` clobbered README outside markers | `3bff716` |
+| 2 | `--force` reset `.gitignore` to bare default | `e4619fd` |
+| 3 | `--force` reset auto-section to "0 nodes" | `3bff716` |
+| 4 | Exports table listed helpers / viewer output | `3bff716` |
+| 5 | DOCX non-deterministic | `a84aef3` |
+
+---
+
 ## [0.5.0] — 2026-05-25
 
 The second-example milestone. Profile mechanism is now exercised by two profiles end to end. Onboarding documentation is complete.
