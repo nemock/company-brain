@@ -8,7 +8,7 @@ Built as a set of Claude Code skills plus a Python CLI (`cb`). Industry-agnostic
 
 ## Status
 
-Current milestone: **v0.6.0 — Field-report polish.** ✅ shipped. The first version cycle driven by operating a real production vault — five friction points surfaced and fixed (README / `.gitignore` `--force` clobbers, exports-table noise, DOCX non-determinism), plus two new `cb maintain` commands for upgrading older vaults non-destructively. Two example vaults still exercise both shipped profiles end-to-end. See the [CHANGELOG](CHANGELOG.md) for the full delta. Next milestone is **v1.0.0** — the release tag and public announcement.
+Current milestone: **v0.7.0 — Document-driven intake.** ✅ shipped. The intake-render loop now works the other way around: start from a target doc's section structure and let it drive what gets captured. Two read-only CLI helpers (`cb describe-doc-questions`, `cb gaps-for-doc`), one shipped manifest (MRD), and a new `intake for-doc` sub-mode that walks a doc's sections in order — skipping the complete ones, confirming the partial ones, asking about the empty ones — and silently files stray facts (caught from voice-dictated rambles) into other sections of the same doc. Two example vaults still exercise both shipped profiles end-to-end. See the [CHANGELOG](CHANGELOG.md) for the full delta. Next milestone is **v1.0.0** — the release tag and public announcement.
 
 - [PRD.md](PRD.md) — full design spec.
 - [ROADMAP.md](ROADMAP.md) — milestone sequencing.
@@ -35,7 +35,7 @@ cb install-skills --source .
 | Skill | What it does |
 |---|---|
 | [`vault-architect`](skills/vault-architect/SKILL.md) | Scaffold a new vault (`cb scaffold`). Runs once per company. |
-| [`intake`](skills/intake/SKILL.md) | Conversational capture into typed nodes. Sub-modes: vision, product, persona, competitor, competitor-ifu, competitor-clearance, competitor-snapshot, metric, meeting-notes, risk, clearance. |
+| [`intake`](skills/intake/SKILL.md) | Conversational capture into typed nodes. Sub-modes: vision (dictation-friendly six-phase flow), **for-doc** (document-driven interview that walks a target doc's sections), product, persona, competitor, competitor-ifu, competitor-clearance, competitor-snapshot, metric, meeting-notes, risk, clearance. |
 | [`atomize`](skills/atomize/SKILL.md) | Ingest existing docs (markdown, Word, PDF, transcripts, image screenshots) into typed nodes with provenance. |
 | [`query`](skills/query/SKILL.md) | Answer questions against the graph. Auto-injects pillars, walks typed edges, cites node ids, flags vision-vs-evidence and staleness. |
 | [`doc-generate`](skills/doc-generate/SKILL.md) | Render planning documents from the graph. **21 generators**: full MRD (md / html / docx), full one-pager (md / html), plus 19 scaffolds (PID, project charter, stakeholder register, risk register, status report, meeting minutes, lessons learned, business plan, sales battle card, competitive brief, IFU comparison, decision log, press release, investor update, onboarding doc, SRD, SRS, HRS, risk brainstorm). |
@@ -55,6 +55,8 @@ cb extract         <file.docx|file.pdf>      # text extraction for atomize
 cb list-nodes      [filters]                 # JSON summary of nodes (for query)
 cb get-node        <id>                      # JSON node + inbound/outbound edges
 cb render          <doc>  [--format ...]     # 21 doc types — MRD, one-pager, 19 scaffolds
+cb describe-doc-questions <doc> [--path ...] # JSON question manifest for the for-doc interview
+cb gaps-for-doc    <doc>  --path <vault>     # per-section gap report (complete/partial/empty)
 cb maintain        <subcommand>              # repair | decay | audit | rebuild-index
 cb viewer          [--mode ...]              # D3 HTML graph viewer
 cb install-skills                            # symlink skills into ~/.claude/skills
@@ -99,6 +101,27 @@ cb validate --path .
 > Add a metric: "Pad attach rate at day 1", medium volatility.
 
 The intake skill picks the right sub-mode from what you say. Every captured node lands in the right folder with the right frontmatter and a `derived_from` edge to a source node.
+
+#### Document-driven intake (`for-doc`)
+
+When you have a specific doc in mind — an MRD for the board, a PID to kick off a project — and you'd rather have the doc's section structure guide what gets captured than figure out which intake sub-mode covers each piece, run the `for-doc` interview.
+
+> Let's do an intake for the MRD. I'll dictate.
+
+> Walk me through what's missing from the MRD section by section.
+
+> Document-driven intake of the MRD — go.
+
+The interview reads the doc's question manifest, computes per-section gaps against your vault, and announces what it'll cover up front: "I have everything I need for the executive summary, market personas, and competitive landscape. Vision and positioning is partial — you have 2 pillars but the section wants 3+. The remaining 4 sections are empty. We'll walk those 5 sections. Ready?"
+
+Then it walks the sections in order, posing questions written for voice dictation ("In one or two sentences, what does this company build, and who is it for?"). After each rambling answer, it extracts the on-topic content into the right node type and silently files stray facts that match another section's needs — so when you accidentally mention a competitor while answering a vision question, that competitor lands in §6 without breaking your flow. At the end it prints a captured-summary, runs `cb validate`, and offers to render the doc.
+
+```bash
+cb describe-doc-questions mrd --path .        # JSON: manifest, profile-filtered for this vault
+cb gaps-for-doc mrd --path .                  # JSON: per-section status (complete/partial/empty)
+```
+
+v0.7.0 ships the MRD manifest. More doc types add manifests as adopters surface the need — each new manifest is a YAML file, not new code.
 
 ### Ingest existing documents (atomize)
 

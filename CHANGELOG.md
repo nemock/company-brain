@@ -4,6 +4,31 @@ All notable changes to company-brain. Format follows [Keep a Changelog](https://
 
 The schema is data; profile / node-type / edge-type additions are minor-version-breaking only if they require existing vaults to change. Additions that older vaults can ignore are non-breaking.
 
+## [0.7.0] — 2026-05-26
+
+Document-driven intake. The first version cycle to make the *intake → render* loop work the other way around: instead of capturing knowledge and hoping the resulting MRD reads well, start from the MRD's section structure and let the doc drive what gets captured. Two CLI helpers, one shipped question manifest (MRD), one new intake sub-mode. Built for voice-dictated sessions where the operator rambles across topics; the LLM extracts the on-topic content and silently files stray facts into other sections of the same doc.
+
+### Added
+
+- **`src/company_brain/intake/`** — new package housing document-driven intake helpers. Public API: `load_manifest`, `list_manifests`, `filter_for_profile`, `compute_gaps`, `manifest_to_dict`, `gaps_to_dict`, plus typed dataclasses (`Manifest`, `Section`, `FeedsFrom`, `Question`, `SlotStatus`, `SectionGap`).
+- **Question-manifest format** (`src/company_brain/intake/manifests/<doc>.yaml`) — declarative YAML describing a target document as an ordered list of sections, each with intent paragraph, profile gating, `feeds_from` slots (node-type + role + minimum count), and dictation-friendly question prompts. Hand-written; not derived from render code — manifests carry interview-time concerns (prompts, intents, completeness rules) that don't exist render-side.
+- **`src/company_brain/intake/manifests/mrd.yaml`** — first shipped manifest. 9 interview sections (executive summary, vision and positioning, indications for use [medical-device], market and personas, market requirements, competitive landscape, regulatory landscape [medical-device], open questions, non-goals); sections 8 (evidence-vs-vision split) and 11 (sources bibliography) are computed at render time and aren't part of the interview. Profile gating drops the two medical-device sections on non-meddev vaults.
+- **`cb describe-doc-questions <doc> [--path <vault>]`** — emit a question manifest as JSON. Without `--path`, the full manifest is returned. With `--path`, sections whose `profile_required` doesn't match the vault's active profile are dropped before emission.
+- **`cb gaps-for-doc <doc> [--path <vault>]`** — emit a per-section gap report. Each section classifies as `complete` (every `feeds_from` slot at or above its `min`), `partial` (some nodes present but not all slots satisfied), or `empty` (no slot has any matching node). Role discriminators handled: `pillar` `positive`/`non-goal`, `decision` `rules-out`, `requirement` by `requirement_class`, `source` by `source_kind`.
+- **`intake` skill: new `for-doc` sub-mode** documented in `skills/intake/SKILL.md`. Walks the target doc's sections in order, skipping `complete` ones (announced up front), confirming `partial` ones, posing the questions on `empty` ones. After each rambling answer the LLM extracts the on-topic content into the section's `captures` node type, silently files stray facts that match another section's `feeds_from`, and re-runs `gaps-for-doc` before the next section so later-section auto-fills get caught. Resumable — nodes are written as the session proceeds, so a stopped session resumes at the first still-empty section on the next run. Ends with a captured-summary, `cb validate`, and an offer to `cb render`.
+
+### Tests
+
+384 passing (346 baseline + 38 new). Coverage spans manifest loading (well-formed + 8 malformed-input error paths), profile filtering, gap detection against both shipped example vaults including role-discriminator correctness (positive-vs-non-goal pillars, rules-out decisions, market requirements), serialization round-trips, the two new CLI subcommands (happy paths + error paths + idempotency), and an empty-vault sanity check that every section lands as `empty`.
+
+### Design choices
+
+- **CLI subcommands are read-only.** Like the existing `describe-*`, `list-nodes`, `get-node` helpers, both new subcommands emit JSON for LLM consumption. The interview itself is LLM-driven, not CLI-driven — there's no `cb intake for-doc` command.
+- **Stray-fact scope is narrow.** The LLM files a stray fact only when it matches another section's `feeds_from` in the active doc. Broader filing (any active node type) stays out for v1; if the pattern proves useful we can add it behind a `--liberal-stray` flag later.
+- **One manifest in v0.7.0, more on demand.** The other 20 doc types add manifests as adopters surface the need. The pattern is data-driven, so each new manifest is a YAML file, not new code.
+
+---
+
 ## [0.6.0] — 2026-05-25
 
 Field-report polish. The first version cycle driven by operating a real medical-device vault (`AiM_Wiki`, ~61 nodes) and surfacing the rough edges that hadn't shown up in the example vaults. Every change here originated as a friction point flagged in production.

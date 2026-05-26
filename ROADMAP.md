@@ -105,6 +105,18 @@ Dates can be layered on later once the project owner has a sense of velocity. Or
 
 ---
 
+## v0.6.0 — Field-report polish (out-of-band)
+
+**Status:** ✅ shipped 2026-05-25. Driven by operating the production `AiM_Wiki` vault, not by the planned milestone sequence — five friction points surfaced and fixed before v1.0.0. See [CHANGELOG](CHANGELOG.md) for the full delta.
+
+---
+
+## v0.7.0 — Document-driven intake (out-of-band)
+
+**Status:** ✅ shipped 2026-05-26. Surfaced during a design conversation about making the MRD section structure drive what gets captured, rather than figuring out which intake sub-mode covers each piece. Manifest-driven; first manifest covers the MRD; more arrive as adopters need them. See [CHANGELOG](CHANGELOG.md) for the full delta.
+
+---
+
 ## v1.0.0 — Release tag and announcement
 
 **Included:**

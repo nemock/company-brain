@@ -1,6 +1,6 @@
 [project]
 name = "company-brain"
-version = "0.6.0"
+version = "0.7.0"
 description = "AI-native company knowledge graph. Obsidian-compatible markdown vault + Claude Code skills + Python CLI."
 readme = "README.md"
 license = "MIT"
@@ -53,6 +53,7 @@ packages = ["src/company_brain"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/company_brain/templates" = "company_brain/templates"
+"src/company_brain/intake/manifests" = "company_brain/intake/manifests"
 
 [tool.ruff]
 line-length = 100

@@ -1,6 +1,6 @@
 ---
 name: intake
-description: Interactive Q&A capture of company knowledge into typed nodes in a company-brain vault. Sub-modes - vision (dictation-friendly six-phase flow), product, persona, competitor, competitor-ifu, competitor-clearance, competitor-snapshot, metric, meeting-notes, risk, clearance. Each session writes new typed markdown node files into the right folder and links them via derived_from edges to a source node. Always reads the vault's _system/PROFILE.md first to learn the active schema, never assumes it.
+description: Interactive Q&A capture of company knowledge into typed nodes in a company-brain vault. Sub-modes - vision (dictation-friendly six-phase flow), for-doc (document-driven interview that walks a target doc's sections), product, persona, competitor, competitor-ifu, competitor-clearance, competitor-snapshot, metric, meeting-notes, risk, clearance. Each session writes new typed markdown node files into the right folder and links them via derived_from edges to a source node. Always reads the vault's _system/PROFILE.md first to learn the active schema, never assumes it.
 ---
 
 # intake
@@ -185,6 +185,149 @@ If the user gave you a relationship to another existing node, add that edge too.
 Before declaring done, ask explicitly: "Were there any 'we are NOT doing X' statements I missed? Dictation tends to bury non-goals in positive prose." Capture anything new as a non-goal pillar or anti-decision.
 
 Final action: run `cb validate --path <vault>` and report results.
+
+### `for-doc` (document-driven)
+
+A document-driven interview that walks the sections of a target planning
+document (MRD, and over time other doc types) and captures what's needed to
+render it. The doc's section structure becomes the script; the operator
+answers section by section, often by voice dictation. Two outputs from one
+session: new typed nodes in the vault, and a rendered doc at the end if the
+operator wants it.
+
+The user invokes this with phrasing like "intake for-doc mrd" or "let's do
+a document-driven intake of the MRD."
+
+**Step 1 — Load the manifest and detect gaps.**
+
+```
+cb describe-doc-questions <doc> --path <vault>
+cb gaps-for-doc <doc> --path <vault>
+```
+
+Both emit JSON. The first returns the section list (already filtered for
+the vault's profile — medical-device-only sections drop on saas vaults
+automatically). The second classifies each section as `complete`,
+`partial`, or `empty`.
+
+If the doc has no manifest yet (`unknown doc`), tell the user — v0.7.0
+ships `mrd`; other doc types add their manifests as adopter demand
+surfaces.
+
+**Step 2 — Announce the plan.**
+
+Tell the user, before asking the first question:
+
+- Which sections will be skipped (already complete) — name them.
+- Which sections will be partial (we already have something, but need more).
+- Which sections will start empty.
+
+Example: "I have everything I need for executive-summary, market-personas,
+and competitive-landscape. Vision and positioning is partial — you have 2
+pillars but the section likes 3+. The remaining 4 sections are empty. We'll
+walk those 5 sections. Ready?"
+
+**Step 3 — Walk sections in order.**
+
+For each section in the (filtered) manifest:
+
+- **complete** — skip silently after the opening announcement. Do not
+  ask its questions.
+- **partial** — confirm what's there: "You already have [list ids]. The
+  section asks for at least N of these; you have M. Want to add more, or
+  move on?" If the user wants to add, ask the section's questions.
+- **empty** — pose the section's questions one at a time, in the order they
+  appear in the manifest. Use the prompt verbatim if it reads well; rephrase
+  for flow if it doesn't.
+
+**Step 4 — Extract from each answer.**
+
+Voice dictation produces rambling, parentheticals, half-sentences, and
+tangents that veer into other topics. For every answer:
+
+1. **The on-topic part** → draft a node of the type indicated by the
+   question's `captures` field. Follow the universal node-writing rules
+   above (required frontmatter, derived_from edge to a session source node).
+2. **Stray facts that match another section's `feeds_from`** in the current
+   doc → also draft nodes, filed in the right folder. The operator will see
+   them in the end-of-session review; don't interrupt to confirm.
+3. **Anything else** (off-topic asides, half-formed thoughts, noise) → drop.
+   You may mention them in the review for the operator to decide.
+
+The "stray fact" scope is **narrow**: only file what would land in another
+section of the doc the user is interviewing. Don't go broader. If the user
+mentions something interesting that doesn't match any section's feeds_from,
+note it in the review summary instead of writing a node.
+
+**Step 5 — Re-check before each section.**
+
+Before posing the next section's questions, re-run:
+
+```
+cb gaps-for-doc <doc> --path <vault>
+```
+
+If the previous answer accidentally satisfied (or partially satisfied) the
+section coming up, surface it: "I think you mentioned earlier that [X],
+which lands in this section. Anything more to add, or shall we move on?"
+
+This is how the document-driven flow stays adaptive — the operator's
+natural rambling pre-fills downstream sections, and the interview reacts.
+
+**Step 6 — Session source node.**
+
+Like the `vision` sub-mode, write one immutable `source` node early in the
+session with `source_kind: strategic-thesis` (or `internal-data` if the
+operator says it's more an accounting of current state than a vision
+statement). Every node you write in this session gets a `derived_from`
+edge to that source. Id pattern:
+`source-for-doc-<doc>-session-<YYYY-MM-DD>`.
+
+**Step 7 — End-of-session review.**
+
+When every non-complete section has been walked, print a captured summary:
+
+```
+Captured this session:
+
+Executive summary:
+  - pillar-... — "Title"
+  - product-... — "Title"
+
+Vision and positioning:
+  - pillar-... — "Title"
+  ...
+
+Stray-filed into other sections:
+  - competitor-acme (filed into Competitive landscape from your answer to
+    "What are your competitors?")
+  ...
+```
+
+Then:
+
+1. Run `cb validate --path <vault>` and report results. If there are
+   errors, propose fixes (don't auto-rewrite — surface and confirm).
+2. Ask: "Render the document now? [Y/n]" If yes, run
+   `cb render <doc> --path <vault>` and report the output path.
+
+**Resumability.**
+
+Nodes are written as the session proceeds, not batched at the end. If the
+operator stops halfway, the next `intake for-doc <doc>` run sees the
+partially-populated vault, classifies the early sections as
+complete/partial, and picks up at the first still-empty section. No state
+file required — the vault is the state.
+
+**Voice-dictation notes.**
+
+- Expect parentheticals ("we work with hospitals, well, actually mainly
+  outpatient surgery centers"). Extract the substance, not the surface
+  form.
+- Expect "we do X, but never Y" answers that mix positive and non-goal
+  pillars. File them in the right sections.
+- Expect the operator to drift into territory another section covers.
+  This is the whole point of the data-driven flow — react and refile.
 
 ### `product`
 
