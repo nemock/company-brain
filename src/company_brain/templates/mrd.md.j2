@@ -252,6 +252,14 @@ A bibliography of every source node in this vault, labeled by `source_kind`. Cit
 _No source nodes in this vault yet. Run `atomize` to ingest existing documents or `intake` to capture new sources._
 {% endif %}
 
+{% if primary_selection_notes %}
+_Notes:_
+
+{% for note in primary_selection_notes %}
+- {{ note }}
+{% endfor %}
+
+{% endif %}
 ---
 
 {% if meta.appends_controlled_document_footer %}
