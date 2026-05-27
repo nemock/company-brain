@@ -39,6 +39,7 @@ namespace: <free-form short string, e.g. "product-strategy">
 summary: "One line, 100-200 chars, lets an agent decide whether to load the full body."
 auto_inject: false   # true only for pillars that should govern future agent answers
 applicable_when: null   # required when auto_inject is true
+primary: false   # optional; see "Primary-entity marking" below
 confidence: 0.85   # 0.0 to 1.0
 verified_at: <ISO date today>
 verified_by: <user's handle>
@@ -72,6 +73,20 @@ Allowed `type` values: `related_to`, `depends_on`, `derived_from`, `contradicts`
 `target` must be an id that already exists in the vault. If the target doesn't exist yet, either create that node first or note the link explicitly to the user so they can decide.
 
 Every node that derives from a source should have a `derived_from` edge to that source. This is how the doc-generators trace claims.
+
+## Primary-entity marking
+
+The optional `primary: true` boolean on a node frontmatter tells doc-generators ("which persona leads the MRD," "which competitor the default sales-battle-card targets") which node to pick when there is more than one of the same type. Scoped per `(type, namespace)` — a primary persona in `market` and a primary persona in `partners` is a legitimate configuration.
+
+Intake rules:
+
+1. **First-of-type in a session auto-marks `primary: true`.** When you write the first `persona`, `product`, `competitor` (or any other type that benefits from primary marking) in a session, set `primary: true` on its frontmatter. Subsequent entities of the same type default to `primary: false`.
+2. **Run `cb list-nodes --type <type> --path <vault>` before auto-marking.** If the vault already has a node of that type, do NOT auto-mark the new one — there is already a representative, and the existing primary should remain unless the user says otherwise.
+3. **Honor a `--make-primary <id>` request from the user.** Anywhere in the session, if the user says something like `--make-primary persona-founder`, "make persona-founder the primary," or "promote competitor-gbrain to primary," demote the current primary in that `(type, namespace)` to `primary: false` and set the named node to `primary: true`. Echo the change back so the user sees the diff. The `--make-primary <id>` form is a recognized shorthand, not a CLI flag (intake is LLM-driven, not a `cb` subcommand).
+4. **Never demote silently.** If the user marks a second node primary without naming what to demote, mention the existing primary and ask which one wins.
+5. **Don't auto-mark profile-conditional types** (`indication-for-use`, `regulatory-clearance`, `risk-insight`, hazards, harms, controls, regulations, standards). These don't have a "representative" semantics.
+
+The validator emits a `--strict` warning when more than one node of the same `(type, namespace)` carries `primary: true`. Renders still produce deterministic output (alphabetical among the primaries) with a footer note, so an over-marked vault stays useful until you tidy it.
 
 ## After writing nodes
 
