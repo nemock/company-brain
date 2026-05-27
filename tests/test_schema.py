@@ -9,11 +9,13 @@ from __future__ import annotations
 
 
 from company_brain.schema import (
+    BASE_REQUIRED_FIELDS,
     EDGE_TYPE_SPECS,
     NODE_TYPE_SPECS,
     NODE_TYPES,
     PROFILE_SPECS,
     SOURCE_KIND_SPECS,
+    FieldType,
     NodeCategory,
     SourceKind,
     base_field_names,
@@ -233,6 +235,17 @@ def test_base_required_fields_include_core_set() -> None:
         "controlled_document",
     ):
         assert required in names, f"{required} missing from base required fields"
+
+
+def test_primary_is_an_optional_base_boolean_field() -> None:
+    # `primary` flags the representative node of a (type, namespace) set for
+    # the doc-generate selection logic. It is optional so pre-v0.8.0 vaults
+    # render unchanged.
+    primary_spec = next((f for f in BASE_REQUIRED_FIELDS if f.name == "primary"), None)
+    assert primary_spec is not None, "primary missing from BASE_REQUIRED_FIELDS"
+    assert primary_spec.type == FieldType.BOOLEAN
+    assert primary_spec.required is False
+    assert primary_spec.default is False
 
 
 def test_extra_required_field_names_dont_collide_with_base() -> None:

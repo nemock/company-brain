@@ -230,6 +230,20 @@ def test_meddev_frontmatter_schema_md_includes_extra_fields(meddev_vault: VaultS
         assert f"`{field}`" in fm, field
 
 
+def test_meddev_frontmatter_schema_md_includes_primary_as_optional(
+    meddev_vault: VaultScaffoldResult,
+) -> None:
+    # The optional `primary` boolean flags the representative node of a
+    # (type, namespace) set for generator selection. It is rendered into
+    # the base-fields table so vault authors discover it without reading
+    # the source.
+    fm = (meddev_vault.vault_path / "_system" / "FRONTMATTER-SCHEMA.md").read_text()
+    primary_rows = [line for line in fm.splitlines() if line.startswith("| `primary`")]
+    assert len(primary_rows) == 1, f"expected one primary row, got: {primary_rows!r}"
+    assert "boolean" in primary_rows[0]
+    assert "optional" in primary_rows[0]
+
+
 def test_meddev_result_counts(meddev_vault: VaultScaffoldResult) -> None:
     # 5 admin folders (root, _system, _attachments, _branding, exports) +
     # 30 node-type folders = 35.

@@ -52,6 +52,13 @@ BASE_REQUIRED_FIELDS: tuple[FieldSpec, ...] = (
     FieldSpec("summary", FieldType.STRING, "One line, 100–200 chars, lets an agent decide whether to load the body."),
     FieldSpec("auto_inject", FieldType.BOOLEAN, "If true, the node enters agent context when applicable_when matches.", default=False),
     FieldSpec("applicable_when", FieldType.STRING, "When auto_inject is true, the condition under which the node injects.", required=False),
+    FieldSpec(
+        "primary",
+        FieldType.BOOLEAN,
+        "If true, generators prefer this node as the representative of its (type, namespace) pair when picking one from a set.",
+        default=False,
+        required=False,
+    ),
     FieldSpec("confidence", FieldType.NUMBER, "0.0–1.0. How trustworthy is this node?"),
     FieldSpec("verified_at", FieldType.DATE, "ISO date the node was last verified."),
     FieldSpec("verified_by", FieldType.STRING, "Handle of the verifier."),
