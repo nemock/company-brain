@@ -6,6 +6,7 @@ namespace: competitive
 summary: "Direct fictional competitor in engineering analytics; per-seat pricing, recently raised a Series B and moving up-market."
 auto_inject: false
 applicable_when: null
+primary: true
 confidence: 0.85
 verified_at: 2026-04-15
 verified_by: nemock

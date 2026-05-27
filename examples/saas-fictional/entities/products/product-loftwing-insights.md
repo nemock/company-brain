@@ -6,6 +6,7 @@ namespace: products
 summary: "The flagship product: a dashboard surface for VPEs that aggregates GitHub + Linear/Jira data into team-level cycle time, deploy frequency, and planning accuracy views."
 auto_inject: false
 applicable_when: null
+primary: true
 confidence: 0.9
 verified_at: 2026-01-22
 verified_by: nemock

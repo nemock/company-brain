@@ -6,6 +6,7 @@ namespace: competitive
 summary: "Direct fictional competitor in adult ambulatory cardiac telemetry; two 510(k) clearances with expanding IFU history; competes head-on with Vitalisens."
 auto_inject: false
 applicable_when: null
+primary: true
 confidence: 0.85
 verified_at: 2026-05-21
 verified_by: nemock
