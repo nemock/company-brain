@@ -2,7 +2,9 @@
 
 > ⚠️ **Pre-1.0, under active development.** APIs, schema, and skill interfaces will change without notice. Watch [ROADMAP.md](ROADMAP.md) for milestones.
 
-**An open-source typed knowledge graph for early-stage companies.** Capture your company's vision, products, customers, competitors, decisions, and the things you've explicitly ruled out as typed markdown nodes in your own git repository. Generate the 21 planning documents your company needs — MRD, PRD, business plan, sales battle card, competitive brief, investor update, decision log, onboarding doc, and more — directly from that single source of truth. Update one node, and every document that references it regenerates with a meaningful git diff.
+**You're the person who knows everything about how your company works because you built it. Or you were hired into one, and you're trying to figure all of that out from the people who built it.** Either way, someone is the human cache keeping the sales deck, the investor update, the website, and the founder's head in sync with each other. `company-brain` is where those answers live so the founder stops being the lookup table — and the new hires stop interrupting them to do the job.
+
+It's an open-source typed knowledge graph for early-stage companies. Capture your company's vision, products, customers, competitors, decisions, and the things you've explicitly ruled out as typed markdown nodes in your own git repository. Generate the 21 planning documents your company needs — MRD, PRD, business plan, sales battle card, competitive brief, investor update, decision log, onboarding doc, and more — directly from that single source of truth. Update one node, and every document that references it regenerates with a meaningful git diff.
 
 ## Why this exists
 
