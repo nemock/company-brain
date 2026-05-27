@@ -63,7 +63,7 @@ Current milestone: **v0.8.0 — Primary-entity marking.** ✅ shipped 2026-05-27
 ```bash
 uv tool install git+https://github.com/nemock/company-brain
 cb install-skills           # symlinks the seven skills into ~/.claude/skills/
-cb --version                # → 0.3.0
+cb --version                # → 0.8.0
 ```
 
 Local dev:
@@ -73,6 +73,44 @@ git clone https://github.com/nemock/company-brain && cd company-brain
 uv tool install . --reinstall
 cb install-skills --source .
 ```
+
+## 5-minute quickstart
+
+Zero to a generated MRD in five steps. Step 3 is the only one that isn't a `cb` command — it's a Claude Code conversation, which is where intake actually lives.
+
+```bash
+# 1. Install company-brain and its Claude Code skills.
+uv tool install git+https://github.com/nemock/company-brain
+cb install-skills
+
+# 2. Scaffold a fresh vault. Swap --profile to `medical-device` for the
+#    ISO-14971 / 510(k) wedge; defaults to industry-agnostic.
+cb scaffold --profile default --path ./my-company
+
+# 3. Capture your first knowledge. Open Claude Code in ./my-company and say:
+#       "intake vision"
+#    Six-phase dictation-friendly flow; budget 10-30 minutes for the first pass.
+#    The skill writes typed markdown nodes into entities/, pillars/, sources/,
+#    etc., with `derived_from` edges to a source node for every claim.
+
+# 4. Validate. Catches broken edges, missing fields, controlled-document
+#    boundary violations on medical-device vaults, and more.
+cb validate --path ./my-company
+
+# 5. Generate your first MRD.
+cb render mrd --path ./my-company
+#    → ./my-company/exports/MRD.md
+```
+
+Want to see the output shape before doing intake? Run step 5 against the bundled example vault:
+
+```bash
+git clone https://github.com/nemock/company-brain.git
+cb render mrd --path company-brain/examples/saas-fictional
+open company-brain/examples/saas-fictional/exports/MRD.md
+```
+
+The full set of 21 doc generators (one-pager, sales battle card, competitive brief, PID, business plan, press release, investor update, decision log, onboarding doc, IFU comparison and risk register for medical-device, plus the SRD/SRS/HRS engineering requirements docs) all use the same `cb render <doc-name>` pattern.
 
 ## The seven skills
 
