@@ -45,4 +45,4 @@ _[Adopters: outline 3–6 milestones with target dates. v0.4.0 has no milestone 
 
 ---
 
-_company-brain v0.6.0 · PID scaffold generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._
+_company-brain v0.8.0 · PID scaffold generated 2026-05-27 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/saas-fictional`._
