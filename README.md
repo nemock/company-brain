@@ -24,6 +24,13 @@ Three role-based personas span every industry the product supports:
 
 Industry doesn't change the personas. A founder is a founder whether the company is building a wearable medical device, a SaaS analytics platform, a hardware product, or a services firm. **Industry specialization is layered on through opt-in profiles.** The most fully developed profile today is medical device — ISO 14971 risk vocabulary, indications-for-use history chains, 510(k) predicate-device modeling, with the explicit discipline of sitting *above* design controls and producing no controlled documents. Reserved profile slots for SaaS, hardware, and services are open to community contribution.
 
+Two earlier-stage variants the same machinery serves:
+
+- **The pre-founder solopreneur** with the idea in hand, the company still mostly in your head, and a real possibility — Y Combinator pending, customer LOI in, day job notice ready to give — that "now I have five employees" becomes a problem next quarter. company-brain captures what's already in your head so the first hire walks into a real wiki, not a Notion graveyard.
+- **The serial entrepreneur** running two or three project folders in parallel. Each company's vault is fully isolated in its own directory and git repo. No bleed between them; no shared "settings" to keep straight. `cb scaffold` and you're running.
+
+Both also benefit from generated docs as **professional-credibility leverage** when working with outsourced contract manufacturers, fractional marketers, or 510(k) consultants — handing a partner an MRD up front compresses weeks of back-and-forth into a single review pass.
+
 ## What you get
 
 - **Typed knowledge graph in plain markdown.** Products, personas, customers, competitors, decisions, pillars, requirements, features, metrics — each a first-class node type with structured frontmatter and typed edges. Agent-readable. Human-readable. Version-controlled like code, because it is.
