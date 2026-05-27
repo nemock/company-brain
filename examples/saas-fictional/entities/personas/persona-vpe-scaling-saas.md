@@ -6,6 +6,7 @@ namespace: market
 summary: "VP of Engineering at a 50–250-engineer B2B SaaS company. Owns engineering velocity outcomes; answers to a non-technical board quarterly."
 auto_inject: false
 applicable_when: null
+primary: true
 confidence: 0.85
 verified_at: 2026-03-11
 verified_by: nemock

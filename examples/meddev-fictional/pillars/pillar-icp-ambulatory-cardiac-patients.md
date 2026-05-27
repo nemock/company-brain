@@ -6,6 +6,7 @@ namespace: product-strategy
 summary: "We serve adult cardiac patients in ambulatory settings during the 7- to 30-day window after a cardiac event or during arrhythmia workup."
 auto_inject: true
 applicable_when: "ICP, target market, audience, indication scope, patient population, who we serve, expansion, pediatric, geriatric, in-patient, home-health"
+primary: true
 confidence: 0.9
 verified_at: 2026-05-21
 verified_by: nemock

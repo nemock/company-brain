@@ -6,6 +6,7 @@ namespace: product-strategy
 summary: "Loftwing serves VPs of Engineering and CTOs at B2B SaaS companies between Series A and Series C (roughly 50–250 engineers)."
 auto_inject: true
 applicable_when: "ICP, target market, audience, who we serve, segment, persona, vertical, customer profile, deal size, sales motion"
+primary: true
 confidence: 0.9
 verified_at: 2026-01-15
 verified_by: nemock

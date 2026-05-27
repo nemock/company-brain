@@ -6,6 +6,7 @@ namespace: products
 summary: "Adult ambulatory cardiac telemetry wearable; continuous ECG capture, Bluetooth uplink to clinician app, 7-day pad cycle."
 auto_inject: false
 applicable_when: null
+primary: true
 confidence: 0.9
 verified_at: 2026-05-21
 verified_by: nemock

@@ -6,6 +6,7 @@ namespace: market
 summary: "Adult patient discharged from cardiology service with continuous-monitoring orders for 7-30 days; mobile, lives at home, manages own pad changes."
 auto_inject: false
 applicable_when: null
+primary: true
 confidence: 0.8
 verified_at: 2026-05-21
 verified_by: nemock
