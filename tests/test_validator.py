@@ -477,3 +477,188 @@ def test_summarize_counts_by_severity() -> None:
         ValidationIssue("warning", "c", "x"),
     ]
     assert summarize(issues) == {"error": 2, "warning": 1, "info": 0}
+
+
+# ---------------------------------------------------------------------------
+# --strict checks for the `primary` frontmatter field
+# ---------------------------------------------------------------------------
+
+
+def _write_persona(
+    vault: Path,
+    *,
+    node_id: str,
+    namespace: str = "market",
+    primary: bool = False,
+) -> Path:
+    """Minimal valid persona node, with a primary-flag hook."""
+
+    fm = f"""---
+id: {node_id}
+title: "Persona {node_id}"
+type: persona
+namespace: {namespace}
+summary: "A persona used to exercise --strict primary checks."
+auto_inject: false
+primary: {"true" if primary else "false"}
+confidence: 0.8
+verified_at: 2026-05-26
+verified_by: test
+tags: []
+edges: []
+related: []
+controlled_document: false
+---
+# Persona {node_id}
+"""
+    path = vault / "entities" / "personas" / f"{node_id}.md"
+    path.write_text(fm, encoding="utf-8")
+    return path
+
+
+def _write_competitor(
+    vault: Path,
+    *,
+    node_id: str,
+    namespace: str = "market",
+    primary: bool = False,
+) -> Path:
+    fm = f"""---
+id: {node_id}
+title: "Competitor {node_id}"
+type: competitor
+namespace: {namespace}
+summary: "A competitor used to exercise --strict primary checks."
+auto_inject: false
+primary: {"true" if primary else "false"}
+confidence: 0.7
+verified_at: 2026-05-26
+verified_by: test
+tags: []
+edges: []
+related: []
+controlled_document: false
+legal_name: "{node_id} Inc."
+canonical_url: "https://example.com/{node_id}"
+---
+# Competitor {node_id}
+"""
+    path = vault / "entities" / "competitors" / f"{node_id}.md"
+    path.write_text(fm, encoding="utf-8")
+    return path
+
+
+def _warning_codes(issues) -> set[str]:
+    return {i.code for i in issues if i.severity == "warning"}
+
+
+def test_strict_off_does_not_warn_on_multiple_primaries(tmp_path: Path) -> None:
+    """Default (non-strict) validation is silent on primary-marking issues —
+    the field is optional and never blocks a render."""
+
+    vault = _make_empty_vault(tmp_path)
+    _write_persona(vault, node_id="persona-one", primary=True)
+    _write_persona(vault, node_id="persona-two", primary=True)
+    issues = validate(vault)
+    assert "multiple-primaries" not in _warning_codes(issues)
+
+
+def test_strict_warns_on_multiple_primaries_in_same_namespace(tmp_path: Path) -> None:
+    vault = _make_empty_vault(tmp_path)
+    _write_persona(vault, node_id="persona-one", namespace="market", primary=True)
+    _write_persona(vault, node_id="persona-two", namespace="market", primary=True)
+    issues = validate(vault, strict=True)
+    warnings = [i for i in issues if i.code == "multiple-primaries"]
+    assert len(warnings) == 2, f"expected 2 warnings, got {warnings!r}"
+    # Both nodes named in every warning, so a vault author skimming output
+    # sees the conflict from either file.
+    for w in warnings:
+        assert "persona-one" in w.message
+        assert "persona-two" in w.message
+
+
+def test_strict_does_not_warn_on_primaries_in_different_namespaces(
+    tmp_path: Path,
+) -> None:
+    """Per spec §2.5: namespace scoping. A primary persona in `market` and a
+    primary persona in `partners` is a legitimate configuration."""
+
+    vault = _make_empty_vault(tmp_path)
+    _write_persona(vault, node_id="persona-buyer", namespace="market", primary=True)
+    _write_persona(vault, node_id="persona-partner", namespace="partners", primary=True)
+    issues = validate(vault, strict=True)
+    assert "multiple-primaries" not in _warning_codes(issues)
+
+
+def test_strict_warns_when_exports_exist_but_no_primary_marked(
+    tmp_path: Path,
+) -> None:
+    """Spec §2.3 second warning: a primary-selecting generator has produced
+    output in exports/ but no entity of the relevant type is primary."""
+
+    vault = _make_empty_vault(tmp_path)
+    _write_persona(vault, node_id="persona-one")  # primary defaults to false
+    _write_persona(vault, node_id="persona-two")
+    # Pretend one-pager was rendered earlier (the generator itself doesn't
+    # run in this test; we only assert the validator notices the artifact).
+    (vault / "exports" / "one-pager.md").write_text("# stub", encoding="utf-8")
+
+    issues = validate(vault, strict=True)
+    warnings = [i for i in issues if i.code == "exports-no-primary"]
+    assert len(warnings) == 1
+    assert "one-pager.md" in warnings[0].message
+    assert "'persona'" in warnings[0].message
+
+
+def test_strict_silent_when_export_exists_and_primary_marked(tmp_path: Path) -> None:
+    vault = _make_empty_vault(tmp_path)
+    _write_persona(vault, node_id="persona-one", primary=True)
+    _write_persona(vault, node_id="persona-two")
+    (vault / "exports" / "one-pager.md").write_text("# stub", encoding="utf-8")
+
+    issues = validate(vault, strict=True)
+    assert "exports-no-primary" not in _warning_codes(issues)
+
+
+def test_strict_recognizes_sales_battle_card_competitor_suffix(tmp_path: Path) -> None:
+    """sales-battle-card filenames embed the competitor id (see scaffolds.py
+    `_b_sales_battle_card`); the validator must strip that to map back to
+    the generator."""
+
+    vault = _make_empty_vault(tmp_path)
+    _write_competitor(vault, node_id="competitor-one")
+    _write_competitor(vault, node_id="competitor-two")
+    (vault / "exports" / "sales-battle-card-competitor-one.md").write_text(
+        "# stub", encoding="utf-8"
+    )
+
+    issues = validate(vault, strict=True)
+    warnings = [i for i in issues if i.code == "exports-no-primary"]
+    assert len(warnings) == 1
+    assert "'competitor'" in warnings[0].message
+
+
+def test_strict_skips_export_warning_when_vault_has_no_candidates(
+    tmp_path: Path,
+) -> None:
+    """If the vault has zero personas, a rendered one-pager is a different
+    problem (handled elsewhere). Don't fire this warning."""
+
+    vault = _make_empty_vault(tmp_path)
+    (vault / "exports" / "one-pager.md").write_text("# stub", encoding="utf-8")
+
+    issues = validate(vault, strict=True)
+    assert "exports-no-primary" not in _warning_codes(issues)
+
+
+def test_strict_does_not_promote_warnings_to_errors(tmp_path: Path) -> None:
+    """Per design decision 3: --strict never blocks a render. Warnings only."""
+
+    vault = _make_empty_vault(tmp_path)
+    _write_persona(vault, node_id="persona-one", primary=True)
+    _write_persona(vault, node_id="persona-two", primary=True)
+    (vault / "exports" / "one-pager.md").write_text("# stub", encoding="utf-8")
+
+    issues = validate(vault, strict=True)
+    errors = [i for i in issues if i.severity == "error"]
+    assert errors == [], f"--strict promoted warnings to errors: {errors!r}"

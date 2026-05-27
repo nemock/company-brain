@@ -251,6 +251,17 @@ def validate_command(
             "for you to address."
         ),
     ),
+    strict: bool = typer.Option(
+        False,
+        "--strict",
+        help=(
+            "Emit additional warnings tied to the `primary` frontmatter "
+            "field: multiple primaries in the same (type, namespace) pair, "
+            "and rendered output in exports/ for a primary-selecting "
+            "generator with no primary of the relevant type marked. "
+            "Neither blocks the render or fails validation."
+        ),
+    ),
 ) -> None:
     """Validate a company-brain vault against the schema.
 
@@ -283,7 +294,7 @@ def validate_command(
             typer.echo("")
 
     try:
-        issues = validate(vault_path)
+        issues = validate(vault_path, strict=strict)
     except VaultNotFoundError as exc:
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
