@@ -86,12 +86,18 @@ _BASE_REQUIRED_FIELDS: tuple[str, ...] = (
 _RISK_OR_IFU_FOLDERS = ("risk", "entities/indications-for-use")
 
 
-def validate(vault_path: Path) -> list[ValidationIssue]:
+def validate(vault_path: Path, *, strict: bool = False) -> list[ValidationIssue]:
     """Validate the vault at ``vault_path``. Return all issues found.
 
     Does not raise on validation errors — the caller (CLI) decides exit code.
     Raises :class:`VaultNotFoundError` only when the path does not exist or
     doesn't have the basic shape of a vault.
+
+    When ``strict`` is true, two additional warning checks fire around the
+    ``primary`` frontmatter field (see :data:`PRIMARY_SELECTING_GENERATORS`):
+    multiple primaries in the same ``(type, namespace)`` pair, and rendered
+    output in ``exports/`` for a primary-selecting generator with no primary
+    of the relevant type marked in the vault. Neither blocks the render.
     """
 
     vault = load_vault(vault_path)
@@ -101,6 +107,9 @@ def validate(vault_path: Path) -> list[ValidationIssue]:
     issues.extend(_check_duplicate_ids(vault))
     for node in vault.nodes:
         issues.extend(_check_node(node, vault))
+    if strict:
+        issues.extend(_check_multiple_primaries_per_namespace(vault))
+        issues.extend(_check_exports_imply_primary(vault))
     return issues
 
 
@@ -465,6 +474,139 @@ def _check_edges(node: Node, vault: Vault) -> list[ValidationIssue]:
                 )
             )
     return issues
+
+
+# ---------------------------------------------------------------------------
+# --strict checks for the `primary` frontmatter field
+# ---------------------------------------------------------------------------
+
+
+# Generators that pick a single representative node of a given type. Keyed by
+# the export filename stem; value is the node type whose primary marking the
+# generator consults. Sales-battle-card stems may include a competitor suffix
+# (e.g. ``sales-battle-card-competitor-gbrain.md``); see _exports_for_stem.
+PRIMARY_SELECTING_GENERATORS: dict[str, str] = {
+    "one-pager": "persona",
+    "mrd": "persona",
+    "sales-battle-card": "competitor",
+    "press-release": "product",
+    "onboarding-doc": "persona",
+}
+
+
+def _is_primary(node: Node) -> bool:
+    return bool(node.frontmatter.get("primary"))
+
+
+def _check_multiple_primaries_per_namespace(vault: Vault) -> list[ValidationIssue]:
+    """Warn when more than one node of the same (type, namespace) is primary.
+
+    The render still produces deterministic output (alphabetical among the
+    primaries) with a footer note; this is a soft signal that the vault
+    author probably means to demote one of them.
+    """
+
+    buckets: dict[tuple[str, str], list[Node]] = {}
+    for node in vault.nodes:
+        if not _is_primary(node):
+            continue
+        key = (node.type, str(node.frontmatter.get("namespace", "")))
+        buckets.setdefault(key, []).append(node)
+
+    issues: list[ValidationIssue] = []
+    for (type_name, namespace), nodes in buckets.items():
+        if len(nodes) < 2:
+            continue
+        ids = sorted(n.id for n in nodes)
+        for node in nodes:
+            issues.append(
+                ValidationIssue(
+                    "warning",
+                    "multiple-primaries",
+                    (
+                        f"{len(nodes)} '{type_name}' nodes in namespace "
+                        f"'{namespace}' are marked primary ({', '.join(ids)}). "
+                        "Generators will pick the alphabetically-first id; "
+                        "demote the others to silence this warning."
+                    ),
+                    node_id=node.id,
+                    path=node.path,
+                )
+            )
+    return issues
+
+
+def _check_exports_imply_primary(vault: Vault) -> list[ValidationIssue]:
+    """Warn when a generator with primary-entity selection has rendered output
+    in ``exports/`` but no entity of the relevant type is marked primary.
+
+    Inferred by filename stem. Sales-battle-card may carry a competitor id
+    suffix; we strip it before matching.
+    """
+
+    exports_dir = vault.path / "exports"
+    if not exports_dir.is_dir():
+        return []
+
+    # Collect stems of rendered docs. We only care about the markdown source
+    # of truth; the html/docx mirrors carry the same selection signal.
+    rendered_stems: set[str] = set()
+    for export in exports_dir.iterdir():
+        if not export.is_file() or export.suffix != ".md":
+            continue
+        rendered_stems.add(export.stem)
+
+    # Per-type set of namespaces with a primary marked. Empty set means no
+    # primary anywhere for that type.
+    primary_namespaces_by_type: dict[str, set[str]] = {}
+    for node in vault.nodes:
+        if not _is_primary(node):
+            continue
+        primary_namespaces_by_type.setdefault(node.type, set()).add(
+            str(node.frontmatter.get("namespace", ""))
+        )
+
+    issues: list[ValidationIssue] = []
+    for stem in sorted(rendered_stems):
+        generator = _generator_for_stem(stem)
+        if generator is None:
+            continue
+        type_name = PRIMARY_SELECTING_GENERATORS[generator]
+        # Skip if the vault has no entity of this type at all — the
+        # generator will have produced a "no <type>" stub rather than
+        # alphabetically picking the wrong one.
+        candidates = [n for n in vault.nodes if n.type == type_name]
+        if not candidates:
+            continue
+        if primary_namespaces_by_type.get(type_name):
+            continue
+        issues.append(
+            ValidationIssue(
+                "warning",
+                "exports-no-primary",
+                (
+                    f"'{stem}.md' is rendered in exports/ but no '{type_name}' "
+                    "node is marked primary; the generator fell back to "
+                    "alphabetical-by-id. Mark one and re-render to silence."
+                ),
+                path=exports_dir / f"{stem}.md",
+            )
+        )
+    return issues
+
+
+def _generator_for_stem(stem: str) -> str | None:
+    """Map an export filename stem back to a primary-selecting generator name.
+
+    Handles the sales-battle-card-<competitor-id> filename convention.
+    """
+
+    if stem in PRIMARY_SELECTING_GENERATORS:
+        return stem
+    # sales-battle-card-<competitor-id>.md
+    if stem.startswith("sales-battle-card-"):
+        return "sales-battle-card"
+    return None
 
 
 # ---------------------------------------------------------------------------
