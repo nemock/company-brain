@@ -41,6 +41,7 @@ from .mrd import (
     _ifu_view,
     _is_non_goal,
     _node_view,
+    _pick_primary,
     _source_view,
 )
 
@@ -298,10 +299,13 @@ def _b_sales_battle_card(vault: Vault, options: dict[str, Any]) -> dict[str, Any
             "pillars_positive": [],
             "pillars_non_goal": [],
             "rules_out_decisions": [],
+            "primary_selection_notes": [],
         }
     chosen_id = options.get("competitor_id")
-    competitor = None
+    competitor: Any = None
+    primary_selection_notes: list[str] = []
     if chosen_id:
+        # Explicit CLI override wins over `primary: true` (spec §4 test case 6).
         for n in competitors:
             if n.id == chosen_id:
                 competitor = n
@@ -312,7 +316,9 @@ def _b_sales_battle_card(vault: Vault, options: dict[str, Any]) -> dict[str, Any
                 f"Known: {', '.join(c.id for c in competitors)}."
             )
     else:
-        competitor = competitors[0]
+        competitor, note = _pick_primary(competitors, "competitor")
+        if note:
+            primary_selection_notes.append(note)
         # Record the auto-chosen competitor so the output filename includes it.
         options["competitor_id"] = competitor.id
 
@@ -328,6 +334,7 @@ def _b_sales_battle_card(vault: Vault, options: dict[str, Any]) -> dict[str, Any
         ],
         "pillars_non_goal": [_node_view(n) for n in pillars if _is_non_goal(n)],
         "rules_out_decisions": rules_out_decisions,
+        "primary_selection_notes": primary_selection_notes,
     }
 
 
@@ -419,7 +426,7 @@ def _b_press_release(vault: Vault, options: dict[str, Any]) -> dict[str, Any]:
         if str(s.frontmatter.get("source_kind", ""))
         in {"customer-interview", "strategic-thesis"}
     ]
-    primary_product = products[0] if products else None
+    primary_product, product_note = _pick_primary(products, "product")
     primary_ifu = None
     if primary_product is not None:
         for edge in primary_product.edges:
@@ -435,6 +442,7 @@ def _b_press_release(vault: Vault, options: dict[str, Any]) -> dict[str, Any]:
             _source_view(interview_or_thesis[0]) if interview_or_thesis else None
         ),
         "pillar": _node_view(pillars[0]) if pillars else None,
+        "primary_selection_notes": [n for n in (product_note,) if n],
     }
 
 
@@ -462,13 +470,15 @@ def _b_onboarding_doc(vault: Vault, options: dict[str, Any]) -> dict[str, Any]:
     personas = _by_type(nodes, "persona")
     customers = _by_type(nodes, "customer")
     decisions = _by_type(nodes, "decision")
+    primary_persona, persona_note = _pick_primary(personas, "persona")
     return {
         "auto_injecting_pillars": [_node_view(n) for n in auto_inject],
         "non_goal_pillars": [_node_view(n) for n in non_goal],
         "key_decisions": [_node_view(n) for n in decisions],
         "concepts": [_node_view(n) for n in concepts],
-        "persona": _node_view(personas[0]) if personas else None,
+        "persona": _node_view(primary_persona) if primary_persona else None,
         "customer": _node_view(customers[0]) if customers else None,
+        "primary_selection_notes": [n for n in (persona_note,) if n],
     }
 
 

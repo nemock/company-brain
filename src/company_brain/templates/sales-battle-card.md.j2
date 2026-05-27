@@ -66,6 +66,14 @@ Our non-goal pillars rule out the following claims — don't make them in sales 
 _No competitor nodes in this vault. Run `intake competitor` to add one, then re-render with `--competitor <id>`._
 {% endif %}
 
+{% if primary_selection_notes %}
+_Notes:_
+
+{% for note in primary_selection_notes %}
+- {{ note }}
+{% endfor %}
+
+{% endif %}
 ---
 
 {% if meta.appends_controlled_document_footer %}

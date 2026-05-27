@@ -71,6 +71,14 @@ _No concept nodes captured yet. Run `intake` and capture key terms as concept no
 
 _[Adopters: list 3–5 people new hires should meet in their first week and what each is the expert on.]_
 
+{% if primary_selection_notes %}
+_Notes:_
+
+{% for note in primary_selection_notes %}
+- {{ note }}
+{% endfor %}
+
+{% endif %}
 ---
 
 {% if meta.appends_controlled_document_footer %}

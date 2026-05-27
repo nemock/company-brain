@@ -33,8 +33,9 @@ from .mrd import (
     _FORMAT_EXTENSIONS,
     RenderResult,
     _by_type,
-    _is_non_goal,
     _node_view,
+    _pick_primary,
+    _pick_primary_pillar,
     _source_view,
 )
 
@@ -120,11 +121,15 @@ def _build_context(
         if str(n.frontmatter.get("source_kind", "")) == "customer-interview"
     ]
 
-    primary_product = products[0] if products else None
-    primary_pillar = _pick_primary_pillar(pillars)
-    primary_persona = personas[0] if personas else None
+    primary_product, product_note = _pick_primary(products, "product")
+    primary_pillar, pillar_note = _pick_primary_pillar(pillars)
+    primary_persona, persona_note = _pick_primary(personas, "persona")
     primary_feature = _pick_primary_feature(features, primary_product)
     primary_interview = customer_interviews[0] if customer_interviews else None
+
+    primary_selection_notes: list[str] = [
+        n for n in (product_note, pillar_note, persona_note) if n
+    ]
 
     return {
         "meta": {
@@ -143,22 +148,8 @@ def _build_context(
         "persona": _node_view(primary_persona) if primary_persona else None,
         "feature": _node_view(primary_feature) if primary_feature else None,
         "interview": _source_view(primary_interview) if primary_interview else None,
+        "primary_selection_notes": primary_selection_notes,
     }
-
-
-def _pick_primary_pillar(pillars: list[Node]) -> Node | None:
-    """Highest-confidence positive (non-goal-excluded) pillar; first id wins ties."""
-
-    positive = [p for p in pillars if not _is_non_goal(p)]
-    if not positive:
-        return None
-    # Sort by (-confidence, id) so the head is highest confidence, then
-    # lexicographically first id as the tiebreaker.
-    positive_sorted = sorted(
-        positive,
-        key=lambda p: (-float(p.frontmatter.get("confidence") or 0.0), p.id),
-    )
-    return positive_sorted[0]
 
 
 def _pick_primary_feature(

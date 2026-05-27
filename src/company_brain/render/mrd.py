@@ -183,11 +183,15 @@ def _build_context(
     sources = _by_type(nodes, "source")
     vision_sources = [s for s in sources if _source_kind(s) in _VISION_SOURCE_KINDS]
 
-    personas = _by_type(nodes, "persona")
+    personas, personas_note = _order_by_primary(_by_type(nodes, "persona"), "persona")
     customers = _by_type(nodes, "customer")
     competitors = _by_type(nodes, "competitor")
     products = _by_type(nodes, "product")
     questions = _by_type(nodes, "question")
+
+    primary_selection_notes: list[str] = []
+    if personas_note:
+        primary_selection_notes.append(personas_note)
 
     market_requirements = [
         n
@@ -270,6 +274,7 @@ def _build_context(
         "open_questions": [_node_view(n) for n in questions],
         "all_sources": [_source_view(n) for n in sources],
         "evidence_split": evidence_split,
+        "primary_selection_notes": primary_selection_notes,
     }
 
 
@@ -280,6 +285,109 @@ def _build_context(
 
 def _by_type(nodes: list[Node], type_name: str) -> list[Node]:
     return sorted([n for n in nodes if n.type == type_name], key=lambda n: n.id)
+
+
+# ---------------------------------------------------------------------------
+# Primary-entity selection (v0.8.0)
+#
+# Generators that pick a single representative node — or order a list with a
+# representative leader — consult the optional `primary: true` frontmatter
+# flag before falling back to alphabetical-by-id. The footer-note discipline
+# (Decision 6, handoff: unconditional) is honored by returning a short note
+# alongside the selection whenever a fallback occurs.
+# ---------------------------------------------------------------------------
+
+
+def _is_primary(node: Node) -> bool:
+    return bool(node.frontmatter.get("primary"))
+
+
+def _pick_primary(
+    candidates: list[Node], type_name: str
+) -> tuple[Node | None, str | None]:
+    """Pick the primary node from an id-sorted list of same-typed candidates.
+
+    Returns ``(chosen, note)``. ``note`` is a one-line string suitable for
+    the ``primary_selection_notes`` block when a fallback was used, or
+    ``None`` when exactly one primary was marked.
+
+    ``candidates`` must already be sorted by id (the alphabetical fallback).
+    """
+
+    if not candidates:
+        return None, None
+    primaries = [n for n in candidates if _is_primary(n)]
+    if len(primaries) == 1:
+        return primaries[0], None
+    if len(primaries) >= 2:
+        chosen = primaries[0]  # already id-sorted
+        return chosen, (
+            f"Multiple `{type_name}` nodes marked primary; "
+            f"selected `{chosen.id}` alphabetically."
+        )
+    chosen = candidates[0]
+    return chosen, (
+        f"No primary `{type_name}` marked; selected `{chosen.id}` by id sort."
+    )
+
+
+def _order_by_primary(
+    candidates: list[Node], type_name: str
+) -> tuple[list[Node], str | None]:
+    """Re-order an id-sorted list so primary nodes lead.
+
+    Used for sections (MRD §3/§4 personas) that list every candidate and
+    want the representative one at the top. Returns ``(ordered, note)``.
+    """
+
+    if not candidates:
+        return [], None
+    primaries = [n for n in candidates if _is_primary(n)]
+    non_primaries = [n for n in candidates if not _is_primary(n)]
+    ordered = primaries + non_primaries
+    if not primaries:
+        return ordered, (
+            f"No primary `{type_name}` marked; ordered by id."
+        )
+    if len(primaries) >= 2:
+        return ordered, (
+            f"Multiple `{type_name}` nodes marked primary; "
+            "ordered by id within the primary set."
+        )
+    return ordered, None
+
+
+def _pick_primary_pillar(
+    pillars: list[Node],
+) -> tuple[Node | None, str | None]:
+    """Pillar selection. Like :func:`_pick_primary` but the fallback uses
+    confidence-then-id rather than id-only — the historical heuristic this
+    generator used before v0.8.0 layered primary-first on top of it.
+
+    Non-goal pillars are excluded from the positive-pillar slot.
+    """
+
+    positive = [p for p in pillars if not _is_non_goal(p)]
+    if not positive:
+        return None, None
+
+    def _confidence_then_id(node: Node) -> tuple[float, str]:
+        return (-float(node.frontmatter.get("confidence") or 0.0), node.id)
+
+    primaries = [p for p in positive if _is_primary(p)]
+    if primaries:
+        primaries_sorted = sorted(primaries, key=_confidence_then_id)
+        if len(primaries) >= 2:
+            return primaries_sorted[0], (
+                f"Multiple `pillar` nodes marked primary; "
+                f"selected `{primaries_sorted[0].id}` by confidence."
+            )
+        return primaries_sorted[0], None
+
+    chosen = sorted(positive, key=_confidence_then_id)[0]
+    return chosen, (
+        f"No primary `pillar` marked; selected `{chosen.id}` by confidence."
+    )
 
 
 def _is_non_goal(pillar: Node) -> bool:

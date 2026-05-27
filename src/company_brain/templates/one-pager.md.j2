@@ -46,6 +46,14 @@ _No customer-interview source yet. Run `atomize` on a transcript or `intake meet
 - Profile: `{{ meta.profile }}`
 - For the full picture, see the MRD generated alongside this one-pager (`exports/MRD.md`).
 
+{% if primary_selection_notes %}
+_Notes:_
+
+{% for note in primary_selection_notes %}
+- {{ note }}
+{% endfor %}
+
+{% endif %}
 ---
 
 {% if meta.appends_controlled_document_footer %}
