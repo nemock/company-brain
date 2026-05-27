@@ -137,6 +137,7 @@ Order within v1.x is flexible; prioritized by user feedback after v1.0.0.
 - openFDA API integration: `cb intake-510k <K-number>` pulls structured fields and optionally the summary PDF.
 - Multi-page crawl + change detection (snapshot diffing).
 - Polite single-page HTTP fallback (`cb fetch`) — for users who haven't installed chrome-devtools-mcp. Uses `httpx` + a text-extraction library; respects robots.txt and rate limits; fails clearly on JS-heavy sites and tells the user to fall back to manual import or chrome-devtools-mcp.
+- **`intake bootstrap` sub-mode** — guided first-run interview aimed at empty vaults and pre-founders. A short ordered question set ("What's the product idea, in one paragraph?", "Who is it for, even roughly?", "What problem does it solve?", "What stage are you at?", "What's already in your head — want to dictate?") that lowers the on-ramp below `intake vision`. Accepts a free-text brain dump as an alternative seed via the existing `atomize` path, so a 3000-word voice memo can bootstrap the typed graph without a Q&A session. The components exist today; this packages them as one named flow for the solopreneur persona.
 
 **Format breadth:**
 - PowerPoint atomization (`python-pptx`).
