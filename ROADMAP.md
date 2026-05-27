@@ -117,6 +117,12 @@ Dates can be layered on later once the project owner has a sense of velocity. Or
 
 ---
 
+## v0.8.0 — Primary-entity marking (out-of-band)
+
+**Status:** ✅ shipped 2026-05-27. Surfaced during meta-vault dogfooding: the doc-generators picked the wrong representative entity whenever a vault had more than one persona, product, or competitor named semantically rather than by priority prefix (the MRD listed personas as Founder → Lead Marketing → Lead Product because `lead-m` < `lead-p` alphabetically). Adds an optional `primary: bool` to base frontmatter, scoped per `(type, namespace)`; five generators filter by it before falling back to alphabetical with a footer note. `cb validate --strict` warns on multiple primaries in the same scope and on rendered exports with no primary marked. Source spec: [`docs/specs/spec-primary-entity-marking.md`](docs/specs/spec-primary-entity-marking.md). See [CHANGELOG](CHANGELOG.md) for the full delta.
+
+---
+
 ## v1.0.0 — Release tag and announcement
 
 **Included:**
