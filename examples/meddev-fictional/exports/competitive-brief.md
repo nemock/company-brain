@@ -41,4 +41,4 @@ _[Adopters: 3–5 trends and where competitors haven't yet played.]_
 
 > This is a planning artifact. It is not a controlled document and is not part of any design history file, risk management file, or traceability matrix per ISO 14971, IEC 62304, or 21 CFR 820.
 
-_company-brain v0.6.0 · competitive-brief scaffold generated 2026-05-25 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/meddev-fictional`._
+_company-brain v0.8.0 · competitive-brief scaffold generated 2026-05-27 from vault at `/Volumes/Casima/claudeCode/CompanyWiki/company-brain/examples/meddev-fictional`._

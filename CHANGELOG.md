@@ -4,6 +4,44 @@ All notable changes to company-brain. Format follows [Keep a Changelog](https://
 
 The schema is data; profile / node-type / edge-type additions are minor-version-breaking only if they require existing vaults to change. Additions that older vaults can ignore are non-breaking.
 
+## [0.8.0] — 2026-05-27
+
+Primary-entity marking. Closes the alphabetical-sort gap that surfaced during meta-vault dogfooding: when a vault has more than one persona, product, or competitor, the doc-generators previously picked one by id sort, which produced wrong representatives whenever entities were named semantically (`persona-founder`, `persona-lead-product-manager`, `persona-lead-marketing-manager`) instead of by priority prefix. v0.8.0 adds an optional `primary: bool` field on the base frontmatter; generators check it first and fall back to alphabetical with a footer note. Backward-compatible: pre-existing vaults render unchanged except for the new fallback note.
+
+Source spec: [`docs/specs/spec-primary-entity-marking.md`](docs/specs/spec-primary-entity-marking.md).
+
+### Added
+
+- **`primary: bool` on base frontmatter** ([`src/company_brain/schema/frontmatter.py`](src/company_brain/schema/frontmatter.py)) — optional boolean, default `false`, scoped per `(type, namespace)` so a primary persona in `market` and a primary persona in `partners` can coexist. Documented in the regenerated `_system/FRONTMATTER-SCHEMA.md` for every scaffolded vault.
+- **`cb validate --strict`** ([`src/company_brain/validator.py`](src/company_brain/validator.py)) — emits warnings for two primary-related conditions: multiple primaries in the same `(type, namespace)` pair (`multiple-primaries`), and rendered output in `exports/` for a primary-selecting generator with no primary of the relevant type marked in the vault (`exports-no-primary`). Both are warnings, never errors; the validate exit code is unaffected. Default `cb validate` stays silent on primary marking.
+- **Primary-selection logic in five generators** — `one-pager`, `mrd`, `sales-battle-card`, `press-release`, `onboarding-doc`. Each filters by `primary: true` first; on multiple primaries, picks alphabetically-by-id; on no primary, falls back to the historical alphabetical (or, for the one-pager pillar slot, confidence-then-id) selection with a footer note. Pillar selection layers primary-first on top of the existing confidence heuristic rather than replacing it. The sales-battle-card `--competitor <id>` CLI flag still wins over `primary: true` (explicit choice trumps frontmatter).
+- **Footer-note discipline** — every primary-selecting generator surfaces fallback selections under a `_Notes:_` block above the controlled-document footer. Strings: `"No primary <type> marked; selected <id> by id sort."` and `"Multiple <type> nodes marked primary; selected <id> alphabetically."` (or `"by confidence"` for the pillar slot). Discipline is unconditional — Decision 6 in the v0.8.0 plan — so an under-marked vault stays visible until the gap is addressed.
+- **Intake skill: primary-marking behavior** ([`skills/intake/SKILL.md`](skills/intake/SKILL.md)) — first-of-type entity captured in a session auto-marks `primary: true` when the vault has no prior entity of that type. Subsequent entities default to `primary: false`. Recognizes `--make-primary <id>` (or natural-language equivalents) as a user request to demote the current primary and promote the named node. Profile-conditional types (risk, IFU, clearance, hazard, etc.) are excluded — they have no "representative" semantics.
+- **27 new tests** spanning schema, validator, and the five generators. The new [`tests/test_primary_selection.py`](tests/test_primary_selection.py) consolidates per-generator behavior into one discoverable suite (17 tests); validator `--strict` adds 8 tests in [`tests/test_validator.py`](tests/test_validator.py); schema and FRONTMATTER-SCHEMA.md additions add 2 in [`tests/test_schema.py`](tests/test_schema.py) and [`tests/test_scaffold.py`](tests/test_scaffold.py).
+
+### Changed
+
+- **`examples/meddev-fictional/` and `examples/saas-fictional/`** — intended primaries marked (`product-vitalisens-cardio`, `persona-ambulatory-cardiac-patient`, `competitor-cardiotrace-inc`, `pillar-icp-ambulatory-cardiac-patients` for the meddev vault; the lone `product-loftwing-insights`, `persona-vpe-scaling-saas`, `competitor-flightpath-eng`, `pillar-icp-vpe-scaling-saas` for the saas vault). All committed exports regenerated against v0.8.0 with the pinned generation date `2026-05-27`; renders are footer-note-free under `cb validate --strict`.
+- **Version stamp** in `pyproject.toml`, `src/company_brain/__init__.py`, and footer lines of every generated document: `0.7.0` → `0.8.0`.
+
+### Migration
+
+- **Existing vaults: no action required.** `primary` is optional; vaults without it render unchanged except for the new footer note when a generator falls back to alphabetical. Mark intended primaries to silence the note.
+- **Adopters who care about render byte-equality across the upgrade**: regenerate `exports/` after the version bump. The version stamp and footer note differ otherwise.
+
+### Out of scope (deferred)
+
+- **`investor-update`** — sits in the spec's table but uses mixed selection logic for top-line metrics; orthogonal to the boolean filter and addressed in its own future spec.
+- **Multi-tier priority (`priority: 1/2/3`)** — boolean is sufficient for now; revisit if it proves limiting.
+- **Edge ordering by primary** — edges have their own `weight` field for similar purposes; different mechanism.
+- **Materiality field unification** with the update-brief design — orthogonal concern, lives in its own future spec.
+
+### Tests
+
+411 passing (was 384 in v0.7.0; +27 new). Ruff clean.
+
+---
+
 ## [0.7.0] — 2026-05-26
 
 Document-driven intake. The first version cycle to make the *intake → render* loop work the other way around: instead of capturing knowledge and hoping the resulting MRD reads well, start from the MRD's section structure and let the doc drive what gets captured. Two CLI helpers, one shipped question manifest (MRD), one new intake sub-mode. Built for voice-dictated sessions where the operator rambles across topics; the LLM extracts the on-topic content and silently files stray facts into other sections of the same doc.
